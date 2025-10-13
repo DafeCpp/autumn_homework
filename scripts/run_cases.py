@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
+import tempfile
 
 
 TASK_NAME_RE = re.compile(r"^task_\d+$")
@@ -24,6 +25,7 @@ class CaseStatus(Enum):
     EXEC_MISSING = "exec_missing"
     SLOW = "slow"
     ERROR = "error"
+    MEM_EXCEEDED = "mem_exceeded"
 
 
 @dataclass
@@ -33,6 +35,7 @@ class CaseResult:
     status: CaseStatus
     duration_ms: int
     message: str = ""
+    peak_kb: Optional[int] = None
 
 
 def find_repo_root(start: Path) -> Path:
@@ -151,6 +154,61 @@ def run_executable(exe: Path, stdin_data: str, timeout_sec: float) -> Tuple[int,
         return 124, e.stdout or "", e.stderr or "", duration
 
 
+def find_time_tool() -> Optional[str]:
+    # Prefer GNU time executable
+    for candidate in ["/usr/bin/time", "/bin/time"]:
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def run_executable_with_memory(
+    exe: Path, stdin_data: str, timeout_sec: float, time_tool: str
+) -> Tuple[int, str, str, float, Optional[int]]:
+    # Use GNU time to measure peak RSS in KB via %M
+    with tempfile.NamedTemporaryFile(prefix="runner_mem_", delete=False) as tmp:
+        mem_file = tmp.name
+    try:
+        start = time.perf_counter()
+        try:
+            completed = subprocess.run(
+                [time_tool, "-f", "MAXRSS=%M", "-o", mem_file, str(exe)],
+                input=stdin_data,
+                capture_output=True,
+                text=True,
+                timeout=timeout_sec,
+            )
+            duration = time.perf_counter() - start
+            rc = completed.returncode
+            stdout = completed.stdout
+            stderr = completed.stderr
+        except subprocess.TimeoutExpired as e:
+            duration = time.perf_counter() - start
+            rc = 124
+            stdout = e.stdout or ""
+            stderr = e.stderr or ""
+
+        # Read memory usage if file exists
+        peak_kb: Optional[int] = None
+        try:
+            data = Path(mem_file).read_text(encoding="utf-8").strip()
+            # Expect a single line like MAXRSS=12345
+            for line in data.splitlines():
+                if line.startswith("MAXRSS="):
+                    value = line.split("=", 1)[1].strip()
+                    if value.isdigit():
+                        peak_kb = int(value)
+                    break
+        except Exception:
+            peak_kb = None
+        return rc, stdout, stderr, duration, peak_kb
+    finally:
+        try:
+            os.remove(mem_file)
+        except OSError:
+            pass
+
+
 def compare_outputs(actual: str, expected: str) -> bool:
     return actual == expected
 
@@ -195,6 +253,30 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         type=float,
         default=2.0,
         help="Per-case timeout in seconds (default: 2.0)",
+    )
+    parser.add_argument(
+        "--mem-limit-mb",
+        type=float,
+        default=None,
+        help=(
+            "Soft per-case memory limit in MB. If exceeded, case is marked as MEM_EXCEEDED. "
+            "Combine with --fail-on-mem to make it fail the run."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-mem",
+        action="store_true",
+        help=(
+            "Exit with non-zero status if any case exceeds --mem-limit-mb (i.e., MEM_EXCEEDED)."
+        ),
+    )
+    parser.add_argument(
+        "--report-memtop",
+        type=int,
+        default=0,
+        help=(
+            "Print top-N highest memory usage cases in the summary (0 to disable)."
+        ),
     )
     parser.add_argument(
         "--time-limit",
@@ -294,6 +376,10 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     results: List[CaseResult] = []
     total_cases = 0
 
+    # Decide whether to measure memory
+    time_tool = find_time_tool()
+    measure_memory = bool(time_tool) and (args.mem_limit_mb is not None or args.report_memtop)
+
     for task in sorted(requested):
         exe = task_to_exe.get(task)
         if args.tests_layout == "central":
@@ -317,55 +403,91 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
                 continue
 
             stdin_data = read_text(input_file)
-            rc, stdout, stderr, duration = run_executable(exe, stdin_data, args.timeout)
+            if measure_memory:
+                rc, stdout, stderr, duration, peak_kb = run_executable_with_memory(
+                    exe, stdin_data, args.timeout, time_tool  # type: ignore[arg-type]
+                )
+            else:
+                rc, stdout, stderr, duration = run_executable(exe, stdin_data, args.timeout)
+                peak_kb = None
             duration_ms = format_ms(duration)
 
             if rc == 124:  # timeout code used above
-                results.append(CaseResult(task, case_name, CaseStatus.TIMEOUT, duration_ms, "Timed out"))
-                print(f"{case_name}: TIMEOUT ({duration_ms} ms)")
+                results.append(CaseResult(task, case_name, CaseStatus.TIMEOUT, duration_ms, "Timed out", peak_kb))
+                suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                print(f"{case_name}: TIMEOUT ({duration_ms} ms{suffix})")
                 continue
 
             actual_norm = normalize(stdout, args.normalize)
 
             if args.update_expected and expected_file.exists():
                 write_text(expected_file, actual_norm + "\n")
-                results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "updated expected"))
-                print(f"{case_name}: UPDATED ({duration_ms} ms)")
+                results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "updated expected", peak_kb))
+                suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                print(f"{case_name}: UPDATED ({duration_ms} ms{suffix})")
                 continue
 
             if not expected_file.exists():
                 if args.write_missing:
                     write_text(expected_file, actual_norm + "\n")
-                    results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "wrote expected"))
-                    print(f"{case_name}: WROTE EXPECTED ({duration_ms} ms)")
+                    results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "wrote expected", peak_kb))
+                    suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                    print(f"{case_name}: WROTE EXPECTED ({duration_ms} ms{suffix})")
                 else:
                     if args.save_actual:
                         write_text(expected_file.with_suffix(".out.actual"), actual_norm + "\n")
                     results.append(
-                        CaseResult(task, case_name, CaseStatus.NO_EXPECTED, duration_ms, "expected .out missing")
+                        CaseResult(task, case_name, CaseStatus.NO_EXPECTED, duration_ms, "expected .out missing", peak_kb)
                     )
-                    print(f"{case_name}: NO EXPECTED ({duration_ms} ms)")
+                    suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                    print(f"{case_name}: NO EXPECTED ({duration_ms} ms{suffix})")
                 continue
 
             expected_norm = normalize(read_text(expected_file), args.normalize)
             if compare_outputs(actual_norm, expected_norm):
                 # Check soft time limit if provided
+                # Time soft limit
                 if args.time_limit is not None and duration > args.time_limit:
                     limit_ms = format_ms(args.time_limit)
                     results.append(
-                        CaseResult(task, case_name, CaseStatus.SLOW, duration_ms, f"exceeded {limit_ms} ms")
+                        CaseResult(task, case_name, CaseStatus.SLOW, duration_ms, f"exceeded {limit_ms} ms", peak_kb)
                     )
-                    print(f"{case_name}: SLOW ({duration_ms} ms > {limit_ms} ms)")
+                    suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                    print(f"{case_name}: SLOW ({duration_ms} ms > {limit_ms} ms{suffix})")
                 else:
-                    results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms))
-                    print(f"{case_name}: OK ({duration_ms} ms)")
+                    # Memory soft limit
+                    if args.mem_limit_mb is not None and peak_kb is not None:
+                        limit_kb = int(args.mem_limit_mb * 1024)
+                        if peak_kb > limit_kb:
+                            results.append(
+                                CaseResult(
+                                    task,
+                                    case_name,
+                                    CaseStatus.MEM_EXCEEDED,
+                                    duration_ms,
+                                    f"exceeded {limit_kb} KB",
+                                    peak_kb,
+                                )
+                            )
+                            print(
+                                f"{case_name}: MEM_EXCEEDED ({peak_kb} KB > {limit_kb} KB, {duration_ms} ms)"
+                            )
+                        else:
+                            results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "", peak_kb))
+                            suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                            print(f"{case_name}: OK ({duration_ms} ms{suffix})")
+                    else:
+                        results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "", peak_kb))
+                        suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                        print(f"{case_name}: OK ({duration_ms} ms{suffix})")
             else:
                 if args.save_actual:
                     write_text(expected_file.with_suffix(".out.actual"), actual_norm + "\n")
                 # Provide a short inline diff preview
                 msg = "output differs"
-                results.append(CaseResult(task, case_name, CaseStatus.FAIL, duration_ms, msg))
-                print(f"{case_name}: FAIL ({duration_ms} ms)")
+                results.append(CaseResult(task, case_name, CaseStatus.FAIL, duration_ms, msg, peak_kb))
+                suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
+                print(f"{case_name}: FAIL ({duration_ms} ms{suffix})")
 
     # Summary
     if not results:
@@ -378,11 +500,12 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     missing_expected = sum(1 for r in results if r.status == CaseStatus.NO_EXPECTED)
     slow = sum(1 for r in results if r.status == CaseStatus.SLOW)
     missing_exec = sum(1 for r in results if r.status == CaseStatus.EXEC_MISSING)
+    mem_exceeded = sum(1 for r in results if r.status == CaseStatus.MEM_EXCEEDED)
 
     print(
         f"\n=== Summary ===\n"
-        f"Cases run: {passed + failed + timeouts + missing_expected + missing_exec + slow}\n"
-        f"OK: {passed}, FAIL: {failed}, TIMEOUT: {timeouts}, SLOW: {slow}, NO_EXPECTED: {missing_expected}, EXEC_MISSING: {missing_exec}"
+        f"Cases run: {passed + failed + timeouts + missing_expected + missing_exec + slow + mem_exceeded}\n"
+        f"OK: {passed}, FAIL: {failed}, TIMEOUT: {timeouts}, SLOW: {slow}, MEM_EXCEEDED: {mem_exceeded}, NO_EXPECTED: {missing_expected}, EXEC_MISSING: {missing_exec}"
     )
 
     if args.report_slowest and results:
@@ -398,7 +521,25 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             for r in top_n:
                 print(f"- {r.task}/{r.case_name}: {r.duration_ms} ms [{r.status.value}] {r.message}")
 
-    if failed or timeouts or missing_exec or missing_expected or (args.fail_on_slow and slow):
+    if args.report_memtop and results:
+        mem_measured = [r for r in results if r.peak_kb is not None]
+        mem_measured.sort(key=lambda r: r.peak_kb or 0, reverse=True)
+        top_m = mem_measured[: max(0, args.report_memtop)]
+        if top_m:
+            print("\nTop memory usage cases:")
+            for r in top_m:
+                print(
+                    f"- {r.task}/{r.case_name}: {r.peak_kb} KB [{r.status.value}] {r.message}"
+                )
+
+    if (
+        failed
+        or timeouts
+        or missing_exec
+        or missing_expected
+        or (args.fail_on_slow and slow)
+        or (args.fail_on_mem and mem_exceeded)
+    ):
         return 1
     return 0
 
