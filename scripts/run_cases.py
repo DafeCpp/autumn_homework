@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
-import shutil
+from enum import Enum
 import subprocess
 import sys
 import time
@@ -16,11 +16,21 @@ from typing import Dict, Iterable, List, Optional, Tuple
 TASK_NAME_RE = re.compile(r"^task_\d+$")
 
 
+class CaseStatus(Enum):
+    OK = "ok"
+    FAIL = "fail"
+    TIMEOUT = "timeout"
+    NO_EXPECTED = "no_expected"
+    EXEC_MISSING = "exec_missing"
+    SLOW = "slow"
+    ERROR = "error"
+
+
 @dataclass
 class CaseResult:
     task: str
     case_name: str
-    status: str  # "ok" | "fail" | "timeout" | "no_expected" | "exec_missing" | "error"
+    status: CaseStatus
     duration_ms: int
     message: str = ""
 
@@ -187,6 +197,30 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         help="Per-case timeout in seconds (default: 2.0)",
     )
     parser.add_argument(
+        "--time-limit",
+        type=float,
+        default=None,
+        help=(
+            "Soft per-case time limit in seconds. If exceeded, case is marked as SLOW. "
+            "Combine with --fail-on-slow to make it fail the run."
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-slow",
+        action="store_true",
+        help=(
+            "Exit with non-zero status if any case exceeds --time-limit (i.e., SLOW cases)."
+        ),
+    )
+    parser.add_argument(
+        "--report-slowest",
+        type=int,
+        default=0,
+        help=(
+            "Print top-N slowest cases in the summary (0 to disable)."
+        ),
+    )
+    parser.add_argument(
         "--normalize",
         choices=["strip", "keep", "lines"],
         default="strip",
@@ -277,7 +311,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             case_name = input_file.stem
             if exe is None:
                 results.append(
-                    CaseResult(task, case_name, "exec_missing", 0, "Executable is missing")
+                    CaseResult(task, case_name, CaseStatus.EXEC_MISSING, 0, "Executable is missing")
                 )
                 print(f"{case_name}: EXEC MISSING")
                 continue
@@ -287,7 +321,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             duration_ms = format_ms(duration)
 
             if rc == 124:  # timeout code used above
-                results.append(CaseResult(task, case_name, "timeout", duration_ms, "Timed out"))
+                results.append(CaseResult(task, case_name, CaseStatus.TIMEOUT, duration_ms, "Timed out"))
                 print(f"{case_name}: TIMEOUT ({duration_ms} ms)")
                 continue
 
@@ -295,34 +329,42 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
             if args.update_expected and expected_file.exists():
                 write_text(expected_file, actual_norm + "\n")
-                results.append(CaseResult(task, case_name, "ok", duration_ms, "updated expected"))
+                results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "updated expected"))
                 print(f"{case_name}: UPDATED ({duration_ms} ms)")
                 continue
 
             if not expected_file.exists():
                 if args.write_missing:
                     write_text(expected_file, actual_norm + "\n")
-                    results.append(CaseResult(task, case_name, "ok", duration_ms, "wrote expected"))
+                    results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "wrote expected"))
                     print(f"{case_name}: WROTE EXPECTED ({duration_ms} ms)")
                 else:
                     if args.save_actual:
                         write_text(expected_file.with_suffix(".out.actual"), actual_norm + "\n")
                     results.append(
-                        CaseResult(task, case_name, "no_expected", duration_ms, "expected .out missing")
+                        CaseResult(task, case_name, CaseStatus.NO_EXPECTED, duration_ms, "expected .out missing")
                     )
                     print(f"{case_name}: NO EXPECTED ({duration_ms} ms)")
                 continue
 
             expected_norm = normalize(read_text(expected_file), args.normalize)
             if compare_outputs(actual_norm, expected_norm):
-                results.append(CaseResult(task, case_name, "ok", duration_ms))
-                print(f"{case_name}: OK ({duration_ms} ms)")
+                # Check soft time limit if provided
+                if args.time_limit is not None and duration > args.time_limit:
+                    limit_ms = format_ms(args.time_limit)
+                    results.append(
+                        CaseResult(task, case_name, CaseStatus.SLOW, duration_ms, f"exceeded {limit_ms} ms")
+                    )
+                    print(f"{case_name}: SLOW ({duration_ms} ms > {limit_ms} ms)")
+                else:
+                    results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms))
+                    print(f"{case_name}: OK ({duration_ms} ms)")
             else:
                 if args.save_actual:
                     write_text(expected_file.with_suffix(".out.actual"), actual_norm + "\n")
                 # Provide a short inline diff preview
                 msg = "output differs"
-                results.append(CaseResult(task, case_name, "fail", duration_ms, msg))
+                results.append(CaseResult(task, case_name, CaseStatus.FAIL, duration_ms, msg))
                 print(f"{case_name}: FAIL ({duration_ms} ms)")
 
     # Summary
@@ -330,19 +372,33 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         print("\nNo cases were executed.")
         return 2
 
-    passed = sum(1 for r in results if r.status == "ok")
-    failed = sum(1 for r in results if r.status == "fail")
-    timeouts = sum(1 for r in results if r.status == "timeout")
-    missing_expected = sum(1 for r in results if r.status == "no_expected")
-    missing_exec = sum(1 for r in results if r.status == "exec_missing")
+    passed = sum(1 for r in results if r.status == CaseStatus.OK)
+    failed = sum(1 for r in results if r.status == CaseStatus.FAIL)
+    timeouts = sum(1 for r in results if r.status == CaseStatus.TIMEOUT)
+    missing_expected = sum(1 for r in results if r.status == CaseStatus.NO_EXPECTED)
+    slow = sum(1 for r in results if r.status == CaseStatus.SLOW)
+    missing_exec = sum(1 for r in results if r.status == CaseStatus.EXEC_MISSING)
 
     print(
         f"\n=== Summary ===\n"
-        f"Cases run: {passed + failed + timeouts + missing_expected + missing_exec}\n"
-        f"OK: {passed}, FAIL: {failed}, TIMEOUT: {timeouts}, NO_EXPECTED: {missing_expected}, EXEC_MISSING: {missing_exec}"
+        f"Cases run: {passed + failed + timeouts + missing_expected + missing_exec + slow}\n"
+        f"OK: {passed}, FAIL: {failed}, TIMEOUT: {timeouts}, SLOW: {slow}, NO_EXPECTED: {missing_expected}, EXEC_MISSING: {missing_exec}"
     )
 
-    if failed or timeouts or missing_exec or missing_expected:
+    if args.report_slowest and results:
+        # Consider only cases that actually ran (exclude exec_missing/no_expected) and sort by duration
+        measured = [
+            r for r in results
+            if r.status in {CaseStatus.OK, CaseStatus.FAIL, CaseStatus.TIMEOUT, CaseStatus.SLOW}
+        ]
+        measured.sort(key=lambda r: r.duration_ms, reverse=True)
+        top_n = measured[: max(0, args.report_slowest)]
+        if top_n:
+            print("\nTop slowest cases:")
+            for r in top_n:
+                print(f"- {r.task}/{r.case_name}: {r.duration_ms} ms [{r.status.value}] {r.message}")
+
+    if failed or timeouts or missing_exec or missing_expected or (args.fail_on_slow and slow):
         return 1
     return 0
 

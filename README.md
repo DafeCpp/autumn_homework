@@ -82,6 +82,9 @@ python3 scripts/run_cases.py --tasks task_01 task_02
 - `--tests-layout in-task|central` — где лежат тесты (по умолчанию `in-task`).
 - `--tests-dir <path>` — путь к центральной папке тестов (если `--tests-layout=central`).
 - `--timeout <sec>` — таймаут на тест (по умолчанию 2.0).
+- `--time-limit <sec>` — мягкий лимит времени на кейс. Если превышен, кейс помечается как SLOW.
+- `--fail-on-slow` — завершать с ошибкой, если есть SLOW кейсы (используйте вместе с `--time-limit`).
+- `--report-slowest N` — вывести N самых медленных кейсов в конце отчёта.
 - `--normalize strip|keep|lines` — нормализация вывода при сравнении (по умолчанию `strip`).
 - `--write-missing` — если `.out` отсутствует, записать текущий вывод как эталон.
 - `--update-expected` — перезаписать существующие `.out` текущим выводом.
@@ -93,5 +96,6 @@ python3 scripts/run_cases.py --tasks task_01 task_02
 - **OK**: вывод совпал с эталоном.
 - **FAIL**: вывод отличается от эталона (при `--save-actual` сохранится `<case>.out.actual`).
 - **TIMEOUT**: программа превысила лимит времени (`--timeout`).
+- **SLOW**: программа превысила мягкий лимит времени (`--time-limit`). Можно сделать критичным флагом `--fail-on-slow`.
 - **NO_EXPECTED**: отсутствует файл эталона `.out` для кейса (можно создать через `--write-missing`).
 - **EXEC_MISSING**: не найден исполняемый файл задачи в `build/<task>/<task>`.
