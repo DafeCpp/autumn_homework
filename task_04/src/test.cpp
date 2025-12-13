@@ -2,11 +2,7 @@
 
 #include "../../lib/src/util.hpp"
 
-// TODO: причесать функции Johnson, Dijkstra, BellmanFord в util.cpp, а так они работают
-// TODO: дописать тесты
-
 TEST(JohnsonTest, SimpleGraph) {
-  // Взвешенный список смежности
   std::vector<std::vector<Graph::Edge>> adjList(4);
   adjList[0].push_back({1, 1});
   adjList[1].push_back({2, 2});
@@ -34,7 +30,7 @@ TEST(JohnsonTest, NegativeEdge) {
 
   std::vector<std::vector<long long>> dist = g.Johnson();
 
-  ASSERT_EQ(dist[0][1], 1);  // путь 0->2->1 = 2+(-1)
+  ASSERT_EQ(dist[0][1], 1);
   ASSERT_EQ(dist[0][2], 2);
   ASSERT_EQ(dist[2][1], -1);
 }
@@ -53,7 +49,7 @@ TEST(JohnsonTest, MultiplePaths) {
 
   std::vector<std::vector<long long>> dist = g.Johnson();
 
-  ASSERT_EQ(dist[0][3], 4);  // путь 0->1->3 = 2+2
-  ASSERT_EQ(dist[0][4], 7);  // путь 0->1->3->4 = 2+2+3
-  ASSERT_EQ(dist[2][4], 4);  // путь 2->3->4 = 1+3
+  ASSERT_EQ(dist[0][3], 4);
+  ASSERT_EQ(dist[0][4], 7);
+  ASSERT_EQ(dist[2][4], 4);
 }
