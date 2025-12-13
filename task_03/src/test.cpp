@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <util.hpp>
+#include "../../lib/src/util.hpp"
 
 TEST(Test, Seminar) {
   std ::vector<std ::vector<int>> list_smezhnosti = {
