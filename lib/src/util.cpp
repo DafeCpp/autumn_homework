@@ -2,19 +2,81 @@
 
 #include <queue>
 #include <stdexcept>
+#include <algorithm>
 
-std ::vector<int> Graph::TopologySort(int vartex) {
-  dfs(vartex);
+std::vector<int> Graph::TopologySort(int startVertex) {
+  visited.clear();
+  visited.resize(Description.size(), Color::white);
+  path.clear();
+
+  dfs(startVertex, -1, DfsMode::Topology);
+  std::reverse(path.begin(), path.end());
   return path;
 }
 
-void Graph::dfs(int vartex) {
-  path.push_back(vartex);
-  visited[vartex] = Color::black;
-  for (auto v : Description[vartex]) {
-    if (visited[v] == Color::white) dfs(v);
+std::vector<std::pair<int, int> > Graph::FindBridges() {
+  int allVertex = Description.size();
+
+  visited.clear();
+  visited.resize(allVertex, Color::white);
+
+  timeIn.clear();
+  timeIn.resize(allVertex, -1);
+
+  lowestTime.clear();
+  lowestTime.resize(allVertex, -1);
+
+  bridges.clear();
+  currentTimer = 0;
+
+  dfs(0, -1, DfsMode::Bridges);
+
+  return bridges;
+}
+
+void Graph::dfs(int currentVertex, int parentVertex, DfsMode mode) {
+  visited[currentVertex] = Color::grey;
+
+  if (mode == DfsMode::Bridges) {
+    timeIn[currentVertex] = currentTimer;
+    lowestTime[currentVertex] = currentTimer;
+    ++currentTimer;
+  }
+
+  for (int i = 0; i < Description[currentVertex].size(); ++i) {
+    int nextVertex = Description[currentVertex][i];
+
+    if (nextVertex == parentVertex) continue;
+
+    if (visited[nextVertex] == Color::white) {
+      dfs(nextVertex, currentVertex, mode);
+
+      if (mode == DfsMode::Bridges) {
+        if (lowestTime[nextVertex] > timeIn[currentVertex]) {
+          bridges.push_back(
+              std::make_pair(currentVertex, nextVertex));
+        }
+
+        if (lowestTime[nextVertex] < lowestTime[currentVertex]) {
+          lowestTime[currentVertex] = lowestTime[nextVertex];
+        }
+      }
+    } else {
+      if (mode == DfsMode::Bridges) {
+        if (timeIn[nextVertex] < lowestTime[currentVertex]) {
+          lowestTime[currentVertex] = timeIn[nextVertex];
+        }
+      }
+    }
+  }
+
+  visited[currentVertex] = Color::black;
+
+  if (mode == DfsMode::Topology) {
+    path.push_back(currentVertex);
   }
 }
+
 
 std::vector<long long> Graph::BellmanFord(int source) {
   int allVertex = weightedDescription.size();

@@ -8,6 +8,6 @@ TEST(Test, Seminar) {
 
   Graph g(list_smezhnosti);
   std :: vector<int>  ans = g.TopologySort(5);
-  std :: vector<int>  real_ans = {5, 0, 1, 2, 6, 3, 4};
+  std :: vector<int>  real_ans = {5, 0, 1, 3, 4, 2, 6};
   ASSERT_EQ(real_ans, ans);
 }

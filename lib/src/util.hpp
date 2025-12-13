@@ -10,23 +10,35 @@ class Graph {
     if (weighted) {
       weightedDescription = adjList;
     } else {
-      throw ("Use other constructor for unweighted graph");
+      throw("Use other constructor for unweighted graph");
     }
     visited.resize(adjList.size());
   }
 
-  Graph(std::vector<std ::vector<int>> adjList): Description{adjList} {
+  Graph(std::vector<std ::vector<int>> adjList) : Description{adjList} {
     visited.resize(adjList.size());
   }
 
   std ::vector<int> TopologySort(int vartex);
 
+  std::vector<std::pair<int, int>> FindBridges();
+
   std::vector<std::vector<long long>> Johnson();
 
  private:
+  enum class Color { white = 0, grey = 1, black = 2 };
+  enum class DfsMode { Topology, Bridges };
+
+  std::vector<int> timeIn;
+  std::vector<int> lowestTime;
+  int currentTimer;
+
+  std::vector<std::pair<int, int>> bridges;
+
+  void dfs(int currentVertex, int parentVertex, DfsMode mode);
   std::vector<std::vector<Edge>> weightedDescription;
   std::vector<std::vector<int>> Description;
-  enum class Color { white = 0, grey = 1, black = 2 };
+
   std ::vector<Color> visited;
   std ::vector<int> path;
   void dfs(int vartex);
