@@ -36,6 +36,8 @@ class Graph {
 
   std::vector<std::vector<long long>> Johnson();  // task 4
 
+  int MaxFlow(int source, int sink); // task 6
+
  private:
   enum class Color { white = 0, grey = 1, black = 2 };
   enum class DfsMode { Topology, Bridges, Order, Component };

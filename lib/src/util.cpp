@@ -14,7 +14,7 @@ std::vector<int> Graph::TopologySort(int startVertex) {
   return path;
 }
 
-std::vector<std::pair<int, int> > Graph::FindBridges() {
+std::vector<std::pair<int, int>> Graph::FindBridges() {
   int allVertex = Description.size();
 
   visited.clear();
@@ -191,7 +191,7 @@ std::vector<long long> Graph::BellmanFord(int source) {
   return distination;
 }
 
-void Graph::Dijkstra(int source, std::vector<std::vector<Edge> >& g,
+void Graph::Dijkstra(int source, std::vector<std::vector<Edge>>& g,
                      std::vector<long long>& distination) {
   int allVertex = g.size();
   long long INF = 9000000000000000000;
@@ -201,8 +201,8 @@ void Graph::Dijkstra(int source, std::vector<std::vector<Edge> >& g,
   distination[source] = 0;
 
   std::priority_queue<std::pair<long long, int>,
-                      std::vector<std::pair<long long, int> >,
-                      std::greater<std::pair<long long, int> > >
+                      std::vector<std::pair<long long, int>>,
+                      std::greater<std::pair<long long, int>>>
       queue;
 
   queue.push(std::make_pair(0, source));
@@ -226,11 +226,11 @@ void Graph::Dijkstra(int source, std::vector<std::vector<Edge> >& g,
   }
 }
 
-std::vector<std::vector<long long> > Graph::Johnson() {
+std::vector<std::vector<long long>> Graph::Johnson() {
   int allVertex = weightedDescription.size();
   long long INF = 9000000000000000000;
 
-  std::vector<std::vector<Edge> > weightedDescriptionCopy = weightedDescription;
+  std::vector<std::vector<Edge>> weightedDescriptionCopy = weightedDescription;
   weightedDescriptionCopy.resize(allVertex + 1);
   for (int v = 0; v < allVertex; ++v) {
     Edge current_edge;
@@ -239,14 +239,14 @@ std::vector<std::vector<long long> > Graph::Johnson() {
     weightedDescriptionCopy[allVertex].push_back(current_edge);
   }
 
-  std::vector<std::vector<Edge> > weightedDescriptionOld = weightedDescription;
+  std::vector<std::vector<Edge>> weightedDescriptionOld = weightedDescription;
   weightedDescription = weightedDescriptionCopy;
 
   std::vector<long long> h = BellmanFord(allVertex);
 
   weightedDescription = weightedDescriptionOld;
 
-  std::vector<std::vector<Edge> > reweightedDescription = weightedDescription;
+  std::vector<std::vector<Edge>> reweightedDescription = weightedDescription;
   for (int u = 0; u < allVertex; ++u) {
     for (int k = 0; k < reweightedDescription[u].size(); ++k) {
       reweightedDescription[u][k].weight = reweightedDescription[u][k].weight +
@@ -255,7 +255,7 @@ std::vector<std::vector<long long> > Graph::Johnson() {
     }
   }
 
-  std::vector<std::vector<long long> > distination(
+  std::vector<std::vector<long long>> distination(
       allVertex, std::vector<long long>(allVertex, INF));
 
   for (int u = 0; u < allVertex; ++u) {
@@ -270,4 +270,66 @@ std::vector<std::vector<long long> > Graph::Johnson() {
   }
 
   return distination;
+}
+
+int Graph::MaxFlow(int source, int sink) {
+  int vertexCount = weightedDescription.size();
+
+  std::vector<std::vector<int>> capacity(vertexCount,
+                                         std::vector<int>(vertexCount, 0));
+
+  for (int u = 0; u < vertexCount; ++u) {
+    for (int k = 0; k < weightedDescription[u].size(); ++k) {
+      Edge currentEdge = weightedDescription[u][k];
+      capacity[u][currentEdge.to] += currentEdge.weight;
+    }
+  }
+
+  int maxFlow = 0;
+
+  while (true) {
+    std::vector<int> parent(vertexCount, -1);
+    std::queue<int> bfsQueue;
+
+    bfsQueue.push(source);
+    parent[source] = source;
+
+    while (!bfsQueue.empty() && parent[sink] == -1) {
+      int currentVertex = bfsQueue.front();
+      bfsQueue.pop();
+
+      for (int nextVertex = 0; nextVertex < vertexCount; ++nextVertex) {
+        if (parent[nextVertex] == -1 &&
+            capacity[currentVertex][nextVertex] > 0) {
+          parent[nextVertex] = currentVertex;
+          bfsQueue.push(nextVertex);
+        }
+      }
+    }
+
+    if (parent[sink] == -1) break;
+
+    int pathFlow = 1000000000;
+    int v = sink;
+
+    while (v != source) {
+      int u = parent[v];
+      if (capacity[u][v] < pathFlow) {
+        pathFlow = capacity[u][v];
+      }
+      v = u;
+    }
+
+    v = sink;
+    while (v != source) {
+      int u = parent[v];
+      capacity[u][v] -= pathFlow;
+      capacity[v][u] += pathFlow;
+      v = u;
+    }
+
+    maxFlow += pathFlow;
+  }
+
+  return maxFlow;
 }
