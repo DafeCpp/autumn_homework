@@ -1,4 +1,5 @@
 #include <vector>
+#include <algorithm>
 
 class Graph {
  public:
@@ -63,4 +64,17 @@ class Graph {
   std::vector<long long> BellmanFord(int source);
   void Dijkstra(int source, std::vector<std::vector<Edge>>& g,
                 std::vector<long long>& dist);
+};
+
+
+
+class RMQ {
+ public:
+  RMQ(std::vector<int> array); 
+
+  int Query(int left, int right);
+
+ private:
+  std::vector<std::vector<int> > table;
+  std::vector<int> log;
 };

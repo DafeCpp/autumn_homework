@@ -4,6 +4,42 @@
 #include <queue>
 #include <stdexcept>
 
+
+int RMQ::Query(int left, int right) {
+  int length = right - left + 1;
+  int k = log[length];
+
+  int leftMin = table[left][k];
+  int rightMin = table[right - (1 << k) + 1][k];
+
+  return std::min(leftMin, rightMin);
+}
+
+RMQ::RMQ(std::vector<int> array) {
+    int n = array.size();
+
+    log.resize(n + 1);
+    log[1] = 0;
+    for (int i = 2; i <= n; ++i) {
+      log[i] = log[i / 2] + 1;
+    }
+
+    int maxLog = log[n];
+    table.resize(n, std::vector<int>(maxLog + 1));
+
+    for (int i = 0; i < n; ++i) {
+      table[i][0] = array[i];
+    }
+
+    for (int k = 1; k <= maxLog; ++k) {
+      for (int i = 0; i + (1 << k) <= n; ++i) {
+        table[i][k] =
+            std::min(table[i][k - 1],
+                     table[i + (1 << (k - 1))][k - 1]);
+      }
+    }
+  }
+
 std::vector<int> Graph::TopologySort(int startVertex) {
   visited.clear();
   visited.resize(Description.size(), Color::white);
