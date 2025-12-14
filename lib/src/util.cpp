@@ -1,8 +1,8 @@
 #include "util.hpp"
 
+#include <algorithm>
 #include <queue>
 #include <stdexcept>
-#include <algorithm>
 
 std::vector<int> Graph::TopologySort(int startVertex) {
   visited.clear();
@@ -37,46 +37,123 @@ std::vector<std::pair<int, int> > Graph::FindBridges() {
 void Graph::dfs(int currentVertex, int parentVertex, DfsMode mode) {
   visited[currentVertex] = Color::grey;
 
-  if (mode == DfsMode::Bridges) {
-    timeIn[currentVertex] = currentTimer;
-    lowestTime[currentVertex] = currentTimer;
-    ++currentTimer;
-  }
-
-  for (int i = 0; i < Description[currentVertex].size(); ++i) {
-    int nextVertex = Description[currentVertex][i];
-
-    if (nextVertex == parentVertex) continue;
-
-    if (visited[nextVertex] == Color::white) {
-      dfs(nextVertex, currentVertex, mode);
-
-      if (mode == DfsMode::Bridges) {
-        if (lowestTime[nextVertex] > timeIn[currentVertex]) {
-          bridges.push_back(
-              std::make_pair(currentVertex, nextVertex));
-        }
-
-        if (lowestTime[nextVertex] < lowestTime[currentVertex]) {
-          lowestTime[currentVertex] = lowestTime[nextVertex];
+  switch (mode) {
+    case DfsMode::Order: {
+      for (int next : Description[currentVertex]) {
+        if (visited[next] == Color::white) {
+          dfs(next, -1, mode);
         }
       }
-    } else {
-      if (mode == DfsMode::Bridges) {
-        if (timeIn[nextVertex] < lowestTime[currentVertex]) {
-          lowestTime[currentVertex] = timeIn[nextVertex];
+      order.push_back(currentVertex);
+      break;
+    }
+
+    case DfsMode::Component: {
+      component[currentVertex] = currentComponent;
+      for (int next : transpose[currentVertex]) {
+        if (visited[next] == Color::white) {
+          dfs(next, -1, mode);
         }
       }
+      break;
+    }
+
+    case DfsMode::Bridges: {
+      timeIn[currentVertex] = currentTimer;
+      lowestTime[currentVertex] = currentTimer;
+      ++currentTimer;
+
+      for (int i = 0; i < Description[currentVertex].size(); ++i) {
+        int nextVertex = Description[currentVertex][i];
+        if (nextVertex == parentVertex) continue;
+
+        if (visited[nextVertex] == Color::white) {
+          dfs(nextVertex, currentVertex, mode);
+
+          if (lowestTime[nextVertex] < lowestTime[currentVertex]) {
+            lowestTime[currentVertex] = lowestTime[nextVertex];
+          }
+
+          if (lowestTime[nextVertex] > timeIn[currentVertex]) {
+            bridges.push_back(std::make_pair(currentVertex, nextVertex));
+          }
+        } else {
+          if (timeIn[nextVertex] < lowestTime[currentVertex]) {
+            lowestTime[currentVertex] = timeIn[nextVertex];
+          }
+        }
+      }
+      break;
+    }
+
+    case DfsMode::Topology: {
+      for (int nextVertex : Description[currentVertex]) {
+        if (visited[nextVertex] == Color::white) {
+          dfs(nextVertex, currentVertex, mode);
+        }
+      }
+      path.push_back(currentVertex);
+      break;
     }
   }
 
   visited[currentVertex] = Color::black;
-
-  if (mode == DfsMode::Topology) {
-    path.push_back(currentVertex);
-  }
 }
 
+int Graph::MinEdgesToMakeStronglyConnected() {
+  int vertexCount = Description.size();
+
+  visited.assign(vertexCount, Color::white);
+  order.clear();
+
+  for (int v = 0; v < vertexCount; ++v) {
+    if (visited[v] == Color::white) {
+      dfs(v, -1, DfsMode::Order);
+    }
+  }
+
+  visited.assign(vertexCount, Color::white);
+  component.assign(vertexCount, -1);
+  currentComponent = 0;
+
+  for (int i = vertexCount - 1; i >= 0; --i) {
+    int v = order[i];
+    if (visited[v] == Color::white) {
+      dfs(v, -1, DfsMode::Component);
+      ++currentComponent;
+    }
+  }
+
+  if (currentComponent == 1) {
+    return 0;
+  }
+
+  std::vector<int> inDegree(currentComponent, 0);
+  std::vector<int> outDegree(currentComponent, 0);
+
+  for (int u = 0; u < vertexCount; ++u) {
+    for (int v : Description[u]) {
+      if (component[u] != component[v]) {
+        ++outDegree[component[u]];
+        ++inDegree[component[v]];
+      }
+    }
+  }
+
+  int sources = 0;
+  int sinks = 0;
+
+  for (int i = 0; i < currentComponent; ++i) {
+    if (inDegree[i] == 0) {
+      ++sources;
+    }
+    if (outDegree[i] == 0) {
+      ++sinks;
+    }
+  }
+
+  return std::max(sources, sinks);
+}
 
 std::vector<long long> Graph::BellmanFord(int source) {
   int allVertex = weightedDescription.size();
@@ -172,8 +249,9 @@ std::vector<std::vector<long long> > Graph::Johnson() {
   std::vector<std::vector<Edge> > reweightedDescription = weightedDescription;
   for (int u = 0; u < allVertex; ++u) {
     for (int k = 0; k < reweightedDescription[u].size(); ++k) {
-      reweightedDescription[u][k].weight =
-          reweightedDescription[u][k].weight + h[u] - h[reweightedDescription[u][k].to];
+      reweightedDescription[u][k].weight = reweightedDescription[u][k].weight +
+                                           h[u] -
+                                           h[reweightedDescription[u][k].to];
     }
   }
 
