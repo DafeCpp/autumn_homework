@@ -4,7 +4,6 @@
 #include <queue>
 #include <stdexcept>
 
-
 int RMQ::Query(int left, int right) {
   int length = right - left + 1;
   int k = log[length];
@@ -16,29 +15,27 @@ int RMQ::Query(int left, int right) {
 }
 
 RMQ::RMQ(std::vector<int> array) {
-    int n = array.size();
+  int n = array.size();
 
-    log.resize(n + 1);
-    log[1] = 0;
-    for (int i = 2; i <= n; ++i) {
-      log[i] = log[i / 2] + 1;
-    }
+  log.resize(n + 1);
+  log[1] = 0;
+  for (int i = 2; i <= n; ++i) {
+    log[i] = log[i / 2] + 1;
+  }
 
-    int maxLog = log[n];
-    table.resize(n, std::vector<int>(maxLog + 1));
+  int maxLog = log[n];
+  table.resize(n, std::vector<int>(maxLog + 1));
 
-    for (int i = 0; i < n; ++i) {
-      table[i][0] = array[i];
-    }
+  for (int i = 0; i < n; ++i) {
+    table[i][0] = array[i];
+  }
 
-    for (int k = 1; k <= maxLog; ++k) {
-      for (int i = 0; i + (1 << k) <= n; ++i) {
-        table[i][k] =
-            std::min(table[i][k - 1],
-                     table[i + (1 << (k - 1))][k - 1]);
-      }
+  for (int k = 1; k <= maxLog; ++k) {
+    for (int i = 0; i + (1 << k) <= n; ++i) {
+      table[i][k] = std::min(table[i][k - 1], table[i + (1 << (k - 1))][k - 1]);
     }
   }
+}
 
 std::vector<int> Graph::TopologySort(int startVertex) {
   visited.clear();
@@ -370,6 +367,71 @@ int Graph::MaxFlow(int source, int sink) {
   return maxFlow;
 }
 
+long long Graph::DegreeConstrainedMST(int maxDegree) {
+  int vertexCount = weightedDescription.size();
+
+  struct UndirectedEdge {
+    int from;
+    int to;
+    int weight;
+  };
+
+  std::vector<UndirectedEdge> edges;
+
+  for (int u = 0; u < vertexCount; ++u) {
+    for (int i = 0; i < weightedDescription[u].size(); ++i) {
+      Edge currentEdge = weightedDescription[u][i];
+      if (u < currentEdge.to) {
+        UndirectedEdge e;
+        e.from = u;
+        e.to = currentEdge.to;
+        e.weight = currentEdge.weight;
+        edges.push_back(e);
+      }
+    }
+  }
+
+  std::sort(edges.begin(), edges.end(),
+            [](const UndirectedEdge& a, const UndirectedEdge& b) {
+              return a.weight < b.weight;
+            });
+
+  DSU dsu(vertexCount);
+  std::vector<int> degree(vertexCount, 0);
+
+  long long totalWeight = 0;
+  int usedEdges = 0;
+
+  for (int i = 0; i < edges.size(); ++i) {
+    int u = edges[i].from;
+    int v = edges[i].to;
+
+    if (dsu.Find(u) == dsu.Find(v)) {
+      continue;
+    }
+
+    if (degree[u] >= maxDegree || degree[v] >= maxDegree) {
+      continue;
+    }
+
+    dsu.Unite(u, v);
+    ++degree[u];
+    ++degree[v];
+    totalWeight += edges[i].weight;
+    ++usedEdges;
+
+    if (usedEdges == vertexCount - 1) {
+      break;
+    }
+  }
+
+  if (usedEdges != vertexCount - 1) {
+    throw std::runtime_error(
+        "Cannot construct degree-constrained MST with given maxDegree");
+  }
+
+  return totalWeight;
+}
 
 LCA::LCA(const std::vector<std::vector<int>> tree, int root)
     : Graph(tree),
@@ -414,4 +476,30 @@ int LCA::Query(int u, int v) {
   }
 
   return up[u][0];
+}
+
+bool DSU::Unite(int a, int b) {
+  a = Find(a);
+  b = Find(b);
+  if (a == b) {
+    return false;
+  }
+
+  if (rank[a] < rank[b]) {
+    parent[a] = b;
+  } else if (rank[a] > rank[b]) {
+    parent[b] = a;
+  } else {
+    parent[b] = a;
+    ++rank[a];
+  }
+  return true;
+}
+
+int DSU::Find(int v) {
+  if (parent[v] == v) {
+    return v;
+  }
+  parent[v] = Find(parent[v]);
+  return parent[v];
 }

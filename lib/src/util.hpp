@@ -1,6 +1,23 @@
 #include <cmath>
 #include <vector>
 
+class DSU {
+ public:
+  DSU(int size) : parent(size), rank(size, 0) {
+    for (int i = 0; i < size; ++i) {
+      parent[i] = i;
+    }
+  }
+
+  int Find(int v);
+
+  bool Unite(int a, int b);
+
+ private:
+  std::vector<int> parent;
+  std::vector<int> rank;
+};
+
 class Graph {
  public:
   struct Edge {
@@ -36,6 +53,8 @@ class Graph {
   std ::vector<int> TopologySort(int vartex);  // task 3
 
   std::vector<std::vector<long long>> Johnson();  // task 4
+
+  long long DegreeConstrainedMST(int maxDegree);  // task 5
 
   int MaxFlow(int source, int sink);  // task 6
 
