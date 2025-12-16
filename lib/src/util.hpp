@@ -1,5 +1,5 @@
+#include <cmath>
 #include <vector>
-#include <algorithm>
 
 class Graph {
  public:
@@ -37,7 +37,10 @@ class Graph {
 
   std::vector<std::vector<long long>> Johnson();  // task 4
 
-  int MaxFlow(int source, int sink); // task 6
+  int MaxFlow(int source, int sink);  // task 6
+
+ protected:
+  std::vector<std::vector<int>> Description;
 
  private:
   enum class Color { white = 0, grey = 1, black = 2 };
@@ -51,7 +54,6 @@ class Graph {
 
   void dfs(int currentVertex, int parentVertex, DfsMode mode);
   std::vector<std::vector<Edge>> weightedDescription;
-  std::vector<std::vector<int>> Description;
 
   std::vector<std::vector<int>> transpose;
   std ::vector<Color> visited;
@@ -66,15 +68,29 @@ class Graph {
                 std::vector<long long>& dist);
 };
 
-
-
 class RMQ {
  public:
-  RMQ(std::vector<int> array); 
+  RMQ(std::vector<int> array);
 
   int Query(int left, int right);
 
  private:
-  std::vector<std::vector<int> > table;
+  std::vector<std::vector<int>> table;
   std::vector<int> log;
+};
+
+class LCA : public Graph {
+ public:
+  LCA(const std::vector<std::vector<int>> tree, int root = 0);
+
+  int Query(int u, int v);
+
+ private:
+  int vertexCount;
+  int logN;
+
+  std::vector<std::vector<int>> up;
+  std::vector<int> depth;
+
+  void BuildLCA(int currentVertex, int parentVertex);
 };

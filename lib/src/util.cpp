@@ -369,3 +369,49 @@ int Graph::MaxFlow(int source, int sink) {
 
   return maxFlow;
 }
+
+
+LCA::LCA(const std::vector<std::vector<int>> tree, int root)
+    : Graph(tree),
+      vertexCount(tree.size()),
+      logN(std::log2(tree.size()) + 1),
+      up(vertexCount, std::vector<int>(logN, -1)),
+      depth(vertexCount, 0) {
+  BuildLCA(root, root);
+}
+
+void LCA::BuildLCA(int currentVertex, int parentVertex) {
+  up[currentVertex][0] = parentVertex;
+
+  for (int k = 1; k < logN; ++k) {
+    up[currentVertex][k] = up[up[currentVertex][k - 1]][k - 1];
+  }
+
+  for (int nextVertex : Description[currentVertex]) {
+    if (nextVertex == parentVertex) continue;
+
+    depth[nextVertex] = depth[currentVertex] + 1;
+    BuildLCA(nextVertex, currentVertex);
+  }
+}
+
+int LCA::Query(int u, int v) {
+  if (depth[u] < depth[v]) std::swap(u, v);
+
+  for (int k = logN - 1; k >= 0; --k) {
+    if (depth[u] - (1 << k) >= depth[v]) {
+      u = up[u][k];
+    }
+  }
+
+  if (u == v) return u;
+
+  for (int k = logN - 1; k >= 0; --k) {
+    if (up[u][k] != up[v][k]) {
+      u = up[u][k];
+      v = up[v][k];
+    }
+  }
+
+  return up[u][0];
+}
