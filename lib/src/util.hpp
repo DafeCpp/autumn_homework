@@ -1,5 +1,7 @@
+#pragma once
 #include <cmath>
 #include <vector>
+#include <stdexcept>
 
 class DSU {
  public:
@@ -28,7 +30,7 @@ class Graph {
     if (weighted) {
       weightedDescription = adjList;
     } else {
-      throw("Use other constructor for unweighted graph");
+      throw std::runtime_error("Use other constructor for unweighted graph");
     }
     visited.resize(adjList.size());
   }
