@@ -3,6 +3,7 @@
 #include <functional>
 #include <limits>
 #include <queue>
+#include <stdexcept>
 #include <vector>
 
 class CoordinatedGraph {
@@ -16,7 +17,7 @@ class CoordinatedGraph {
                    std::vector<std::pair<float, float>> coords)
       : Description(adjList), Coordinates(coords) {}
 
-  std::vector<Edge> Neighbors(int vertex) { return Description[vertex]; }
+  const std::vector<Edge>& Neighbors(int vertex) { return Description[vertex]; }
 
   std::pair<float, float> GetCoordinates(int vertex) {
     return Coordinates[vertex];
@@ -34,6 +35,12 @@ class Astar {
   Astar(CoordinatedGraph graph, int begin_point, int end_point)
       : graph_(graph), from_(begin_point), to_(end_point) {
     int n = graph_.len();
+
+    if (from_ < 0 || from_ >= n || to_ < 0 || to_ >= n) {
+      throw std::out_of_range(
+          "Astar: begin_point or end_point is out of graph range");
+    }
+
     gscore.assign(n, std::numeric_limits<float>::infinity());
     fscore.assign(n, std::numeric_limits<float>::infinity());
     came_from.assign(n, -1);
