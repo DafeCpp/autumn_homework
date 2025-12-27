@@ -4,7 +4,6 @@
 
 #include "MST.hpp"
 
-
 TEST(TestDegreeConstrainedMST, SimpleTree) {
   std::vector<Edge> edges = {{1, 2, 1}};
   ASSERT_EQ(DegreeConstrainedMST(2, 1, 1, edges), 1);
