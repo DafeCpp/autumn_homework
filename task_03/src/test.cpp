@@ -309,4 +309,3 @@ TEST(Test_TopologicalSort, Test_NotAcyclic_3) {
 
   ASSERT_THROW(TopologicalSort(graph), std::invalid_argument);
 }
-

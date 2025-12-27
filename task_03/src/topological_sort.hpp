@@ -2,7 +2,6 @@
 
 #include "graph.hpp"
 
-
 template <typename T>
 void DFS(Graph<T>& graph, std::unordered_map<T, bool>& visited,
          std::vector<T>& res, const T& curr_vertex) {
