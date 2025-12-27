@@ -1,40 +1,30 @@
+#include "topological_sort.h"
 #include <iostream>
-
-#include "topological_sort.hpp"
+#include <vector>
 
 int main() {
-  Graph<int> graph;
+  std::ios_base::sync_with_stdio(false);
+  std::cin.tie(nullptr);
 
-  graph.AddVertex(1);
-  graph.AddVertex(2);
-  graph.AddVertex(3);
-  graph.AddVertex(4);
-  graph.AddVertex(5);
-  graph.AddVertex(6);
-  graph.AddVertex(7);
-  graph.AddVertex(8);
-  graph.AddVertex(9);
-  graph.AddVertex(10);
-  graph.AddVertex(11);
+  int n, m;
+  std::cin >> n >> m;
 
-  graph.AddEdge(1, 10);
-  graph.AddEdge(10, 11);
-  graph.AddEdge(5, 1);
-  graph.AddEdge(5, 6);
-  graph.AddEdge(4, 8);
-  graph.AddEdge(2, 3);
-  graph.AddEdge(10, 9);
-  graph.AddEdge(4, 5);
-  graph.AddEdge(5, 7);
-  graph.AddEdge(4, 7);
-  graph.AddEdge(1, 2);
-  graph.AddEdge(3, 4);
-  graph.AddEdge(1, 6);
+  std::vector<std::pair<int, int>> edges(m);
+  for (int i = 0; i < m; ++i) {
+    int u, v;
+    std::cin >> u >> v;
+    edges[i] = {u, v};
+  }
 
-  std::vector<int> ans = TopologicalSort(graph);
+  std::vector<int> result;
+  bool has_order = TopologicalSorter::Sort(n, edges, result);
 
-  for (auto i : ans) {
-    std::cout << i << " ";
+  if (!has_order) {
+    std::cout << -1;
+  } else {
+    for (int i = 0; i < n; ++i) {
+      std::cout << result[i] << " ";
+    }
   }
 
   return 0;
