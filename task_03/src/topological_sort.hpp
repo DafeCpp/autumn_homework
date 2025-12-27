@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <unordered_map>
 
 #include "graph.hpp"
@@ -17,13 +18,15 @@ void DFS(Graph<T>& graph, std::unordered_map<T, bool>& visited,
   res.push_back(curr_vertex);
 }
 
-template <typename T>
-std::vector<T> TopologicalSort(Graph<T> graph) {
-  std::vector<T> reversed_res;
-  std::unordered_map<T, bool> visited;
-
-  while (graph.GetVerticesCount())
-    DFS(graph, visited, reversed_res, graph.GetVerticesIds()[0]);
+std::vector<int> TopologicalSort(Graph<int> graph) {
+  std::vector<int> reversed_res;
+  std::unordered_map<int, bool> visited;
+  try {
+    while (graph.GetVerticesCount())
+      DFS(graph, visited, reversed_res, graph.GetVerticesIds()[0]);
+  } catch (std::invalid_argument) {
+    return std::vector<int>{-1};
+  }
 
   reverse(reversed_res.begin(), reversed_res.end());
 
