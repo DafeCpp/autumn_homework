@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <climits>
 #include <functional>
 #include <numeric>
 #include <unordered_map>
@@ -117,7 +116,7 @@ long long DegreeBoundedMST(const WeightedGraph<int>& g, int d) {
     }
     if (bad == -1) return total;
 
-    long long best = LLONG_MAX;
+    long long best = std::numeric_limits<long long>::max();
     int rem = -1, add = -1;
 
     for (const auto& [to, remId] : adj[bad]) {
