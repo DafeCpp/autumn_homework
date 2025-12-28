@@ -28,7 +28,11 @@ void DFSForBridges(std::unordered_map<T, int>& d, std::unordered_map<T, int>& h,
                    std::vector<Edge<T>>& bridges, Graph<T>& graph, const T& v,
                    const T& p = T()) {
   visited[v] = true;
-  if (p) d[v] = h[v] = h[p] + 1;
+  if (p == T()) {
+    d[v] = h[v] = 0;
+  } else {
+    d[v] = h[v] = h[p] + 1;
+  }
 
   for (auto u : graph.GetAdjVertices(v)) {
     if (u != p) {
@@ -56,8 +60,11 @@ std::vector<Edge<T>> FindBridges(Graph<T> graph) {
   }
 
   std::vector<Edge<T>> bridges;
-  if (graph.GetVerticesCount())
-    DFSForBridges(d, h, visited, bridges, graph, graph.GetVerticesIds()[0]);
+  for (auto v : graph.GetVerticesIds()) {
+    if (!visited[v]) {
+      DFSForBridges(d, h, visited, bridges, graph, v);
+    }
+  }
 
   std::sort(bridges.begin(), bridges.end());
   return bridges;

@@ -103,3 +103,9 @@ TEST(TestNetworkCritical, LongLinearGraph) {
       "8\n2 3 4 5 6 7 8 9\n9\n1 2; 2 3; 3 4; 4 5; 5 6; 6 7; 7 8; 8 9; 9 10\n";
   ASSERT_EQ(RunNetworkCriticalTest(input), expected);
 }
+
+TEST(TestNetworkCritical, UndoundGraph) {
+  std::string input = "5 3\n1 2\n2 3\n4 5\n";
+  std::string expected = "1\n2\n3\n1 2; 2 3; 4 5\n";
+  ASSERT_EQ(RunNetworkCriticalTest(input), expected);
+}

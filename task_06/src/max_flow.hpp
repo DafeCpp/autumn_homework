@@ -38,7 +38,7 @@ class MaxFlow {
         }
       }
       if (parent[t] == -1) break;  // больше нет пути
-      int f = INT_MAX;
+      int f = std::numeric_limits<int>::max();
       for (int v = t; v != s; v = parent[v]) {
         int u = parent[v];
         Edge &e = graph[u][parentEdge[v]];

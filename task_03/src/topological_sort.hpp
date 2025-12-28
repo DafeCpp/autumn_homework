@@ -3,32 +3,43 @@
 
 #include "graph.hpp"
 
+enum class Color {
+  White,  // не посещена
+  Gray,   // в стеке рекурсии
+  Black   // полностью обработана
+};
+
 template <typename T>
-void DFS(Graph<T>& graph, std::unordered_map<T, bool>& visited,
-         std::vector<T>& res, const T& curr_vertex) {
-  if (visited[curr_vertex])
-    throw std::invalid_argument("Graph is not acyclic!");
+void DFS(const Graph<T>& graph, std::unordered_map<T, Color>& color,
+         std::vector<T>& res, const T& v) {
+  color[v] = Color::Gray;
 
-  visited[curr_vertex] = true;
+  for (auto u : graph.GetAdjVertices(v)) {
+    if (color[u] == Color::White) {
+      DFS(graph, color, res, u);
+    } else if (color[u] == Color::Gray) {
+      throw std::invalid_argument("Graph is not acyclic!");
+    }
+  }
 
-  for (auto adj_vertex : graph.GetAdjVertices(curr_vertex))
-    if (graph.ContainsVertex(adj_vertex)) DFS(graph, visited, res, adj_vertex);
-
-  graph.DeleteVertex(curr_vertex);
-  res.push_back(curr_vertex);
+  color[v] = Color::Black;
+  res.push_back(v);
 }
 
-std::vector<int> TopologicalSort(Graph<int> graph) {
-  std::vector<int> reversed_res;
-  std::unordered_map<int, bool> visited;
+std::vector<int> TopologicalSort(const Graph<int>& graph) {
+  std::vector<int> res;
+  std::unordered_map<int, Color> color;
+
+  for (int v : graph.GetVerticesIds()) color[v] = Color::White;
+
   try {
-    while (graph.GetVerticesCount())
-      DFS(graph, visited, reversed_res, graph.GetVerticesIds()[0]);
-  } catch (std::invalid_argument) {
+    for (int v : graph.GetVerticesIds()) {
+      if (color[v] == Color::White) DFS(graph, color, res, v);
+    }
+  } catch (std::invalid_argument&) {
     return std::vector<int>{-1};
   }
 
-  reverse(reversed_res.begin(), reversed_res.end());
-
-  return reversed_res;
+  std::reverse(res.begin(), res.end());
+  return res;
 }
