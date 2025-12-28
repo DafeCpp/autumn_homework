@@ -1,100 +1,168 @@
-#include <algorithm>
-#include <ctime>
-#include <iostream>
-#include <vector>
+#include <bits/stdc++.h>
+using namespace std;
+#include "weighted_graph.hpp"
+/*
+  Возвращает:
+    - минимальный вес остовного дерева с ограничением степени d
+    - или -1, если такое дерево построить невозможно
+*/
 
-struct Edge {
-  int u, v, w;
-  int temp_w;  // Временный вес для рандомизации
-};
+long long DegreeBoundedMST(const WeightedGraph<int> &g, int d) {
+  struct Edge {
+    int u, v, w, id;
+  };
 
-struct DSU {
-  std::vector<int> parent;
-  DSU(int n) {
-    parent.resize(n + 1);
-    for (int i = 0; i <= n; ++i) parent[i] = i;
+  const auto &W = g.GetWeightedEdges();
+  auto verts = g.GetVerticesIds();
+  int n = verts.size();
+  int m = W.size();
+
+  if (n == 0) return 0;
+  if (n == 1) return 0;
+
+  // --- перенумерация вершин ---
+  unordered_map<int, int> id;
+  for (int i = 0; i < n; ++i) id[verts[i]] = i + 1;
+
+  vector<Edge> edges;
+  edges.reserve(m);
+  for (int i = 0; i < m; ++i) {
+    int u = id[W[i].start_vertex];
+    int v = id[W[i].end_vertex];
+    edges.push_back({u, v, W[i].weight, i});
   }
-  int find(int i) {
-    if (parent[i] == i) return i;
-    return parent[i] = find(parent[i]);
-  }
-  bool unite(int i, int j) {
-    int root_i = find(i);
-    int root_j = find(j);
-    if (root_i != root_j) {
-      parent[root_i] = root_j;
+
+  // --- DSU ---
+  struct DSU {
+    vector<int> p, r;
+    DSU(int n) : p(n + 1), r(n + 1, 0) { iota(p.begin(), p.end(), 0); }
+    int f(int x) { return p[x] == x ? x : p[x] = f(p[x]); }
+    bool u(int a, int b) {
+      a = f(a);
+      b = f(b);
+      if (a == b) return false;
+      if (r[a] < r[b]) swap(a, b);
+      p[b] = a;
+      if (r[a] == r[b]) r[a]++;
       return true;
     }
-    return false;
-  }
-};
+  };
 
-int solve() {
-  int n, m;
-  if (!(std::cin >> n >> m)) return -1;
-  std::vector<Edge> edges(m);
-  for (int i = 0; i < m; ++i) {
-    std::cin >> edges[i].u >> edges[i].v >> edges[i].w;
-  }
-  int d_limit;
-  std::cin >> d_limit;
-
-  if (n == 1) return 0;
-  if (d_limit < 1 || (d_limit == 1 && n > 2)) return -1;
-
-  int min_total_weight = -1;
-  std::srand(42);  // Фиксированный сид для детерминизма результата
-
-  // Делаем достаточное количество итераций для поиска оптимума
-  // При N=1000 и M=10000 это займет около 0.3-0.5 сек.
-  for (int iter = 0; iter < 1000; ++iter) {
-    for (int i = 0; i < m; ++i) {
-      // Слегка искажаем веса: исходный вес + малый случайный шум
-      // Это заставляет Крускала выбирать разные пути при равных или близких
-      // весах
-      edges[i].temp_w = edges[i].w * 100 + (std::rand() % 100);
-    }
-
-    std::sort(edges.begin(), edges.end(),
-              [](const Edge& a, const Edge& b) { return a.temp_w < b.temp_w; });
+  // --- попытка Краскала ---
+  vector<char> inTree(m, 0);
+  {
+    vector<int> ord(m);
+    iota(ord.begin(), ord.end(), 0);
+    sort(ord.begin(), ord.end(),
+         [&](int a, int b) { return edges[a].w < edges[b].w; });
 
     DSU dsu(n);
-    std::vector<int> deg(n + 1, 0);
-    int current_weight = 0;
-    int count = 0;
+    int cnt = 0;
+    for (int idx : ord) {
+      auto &e = edges[idx];
+      if (e.u == e.v) continue;
+      if (dsu.u(e.u, e.v)) {
+        inTree[e.id] = 1;
+        if (++cnt == n - 1) break;
+      }
+    }
+    if (cnt != n - 1) return -1;  // граф несвязный
+  }
 
-    for (int i = 0; i < m; ++i) {
-      int u = edges[i].u;
-      int v = edges[i].v;
-      if (dsu.find(u) != dsu.find(v)) {
-        if (deg[u] < d_limit && deg[v] < d_limit) {
-          dsu.unite(u, v);
-          deg[u]++;
-          deg[v]++;
-          current_weight += edges[i].w;
-          count++;
+  // --- восстановление дерева ---
+  vector<vector<pair<int, int>>> adj(n + 1);
+  vector<int> deg(n + 1, 0);
+  long long total = 0;
+
+  auto rebuild = [&]() {
+    for (int i = 1; i <= n; ++i) adj[i].clear(), deg[i] = 0;
+    total = 0;
+    for (auto &e : edges) {
+      if (!inTree[e.id]) continue;
+      adj[e.u].push_back({e.v, e.id});
+      adj[e.v].push_back({e.u, e.id});
+      deg[e.u]++;
+      deg[e.v]++;
+      total += e.w;
+    }
+  };
+
+  rebuild();
+
+  auto degrees_ok = [&]() {
+    for (int i = 1; i <= n; ++i)
+      if (deg[i] > d) return false;
+    return true;
+  };
+
+  if (degrees_ok()) return total;
+
+  // --- локальные обмены ---
+  vector<int> comp(n + 1);
+  function<void(int, int)> dfs = [&](int v, int ban) {
+    comp[v] = 1;
+    for (auto [to, id] : adj[v]) {
+      if (id == ban || comp[to]) continue;
+      dfs(to, ban);
+    }
+  };
+
+  for (int iter = 0; iter < 5000; ++iter) {
+    int bad = -1;
+    for (int i = 1; i <= n; ++i)
+      if (deg[i] > d) {
+        bad = i;
+        break;
+      }
+    if (bad == -1) return total;
+
+    long long best = LLONG_MAX;
+    int rem = -1, add = -1;
+
+    for (auto [to, remId] : adj[bad]) {
+      fill(comp.begin(), comp.end(), 0);
+      dfs(bad, remId);
+
+      for (auto &e : edges) {
+        if (inTree[e.id]) continue;
+        if (comp[e.u] == comp[e.v]) continue;
+
+        int du = deg[e.u] + 1 - (e.u == bad);
+        int dv = deg[e.v] + 1 - (e.v == bad);
+        if (du > d || dv > d) continue;
+
+        long long delta = e.w - edges[remId].w;
+        if (delta < best) {
+          best = delta;
+          rem = remId;
+          add = e.id;
         }
       }
     }
 
-    if (count == n - 1) {
-      if (min_total_weight == -1 || current_weight < min_total_weight) {
-        min_total_weight = current_weight;
-      }
-    }
+    if (rem == -1) return -1;
+
+    inTree[rem] = 0;
+    inTree[add] = 1;
+    rebuild();
   }
 
-  return min_total_weight;
+  return degrees_ok() ? total : -1;
 }
 
 int main() {
-  int result = solve();
-  if (result == -1) {
-    std::cout << "Невозможно построить остовное дерево с заданным ограничением "
-                 "степени"
-              << std::endl;
-  } else {
-    std::cout << result << std::endl;
+  int n, m;
+  std::cin >> n >> m;
+
+  WeightedGraph<int> graph(false);
+  for (int i = 0; i < n; i++) graph.AddVertex(i + 1);
+
+  for (int i = 0; i < m; i++) {
+    int u, v, w;
+    std::cin >> u >> v >> w;
+    graph.AddWeightedEdge(u, v, w);
   }
-  return 0;
+  int d;
+  std::cin >> d;
+  std::cout << DegreeBoundedMST(graph, d);
 }
