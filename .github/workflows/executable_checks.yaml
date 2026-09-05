@@ -21,28 +21,26 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Detect changes for task_01
+      - name: Detect changes for task_02
         id: changes
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            task01_src:
-              - 'task_01/src/**'
+            task02_src:
+              - 'task_02/src/**'
 
-      - name: List task_01 tests
-        if: steps.changes.outputs.task01_src == 'true'
-        run: ls -la task_01/tests || true
+      - name: List task_02 tests
+        if: steps.changes.outputs.task02_src == 'true'
+        run: ls -la task_02/tests || true
 
-      - name: Run task_01 test cases
-        if: steps.changes.outputs.task01_src == 'true'
-        run: python3 scripts/run_cases.py --tasks task_01 --tests-layout in-task --timeout 2.0 --normalize strip --save-actual
+      - name: Run task_02 test cases
+        if: steps.changes.outputs.task02_src == 'true'
+        run: python3 scripts/run_cases.py --tasks task_02 --tests-layout in-task --timeout 2.0 --normalize strip --save-actual
 
       - name: Upload actual outputs (if any)
-        if: steps.changes.outputs.task01_src == 'true'
+        if: steps.changes.outputs.task02_src == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: task_01-actual-outputs
-          path: task_01/tests/*.out.actual
+          name: task_02-actual-outputs
+          path: task_02/tests/*.out.actual
           if-no-files-found: ignore
-
-
