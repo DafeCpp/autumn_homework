@@ -95,7 +95,7 @@ python3 scripts/run_cases.py --tasks task_01 task_02
 - `--update-expected` — перезаписать существующие `.out` текущим выводом.
 - `--save-actual` — при несовпадении сохранить фактический вывод в `<case>.out.actual`.
 
- Примечание: в CI пока настроен только запуск скрипта для `task_01` (см. `.github/workflows/ci.yml`).
+ Примечание: в CI запуск скрипта с файловыми тест-кейсами настроен для `task_03` (см. `.github/workflows/executable_checks.yaml`).
 
 Статусы результатов:
 - **OK**: вывод совпал с эталоном.
