@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <string>
@@ -71,7 +72,8 @@ class Recorder {
   void Write(const std::string& line) {
     if (!enabled()) return;
     // Bound disk usage, including for accidental infinite loops.
-    if (++events_ > 50000 || bytes_ + line.size() > 8 * 1024 * 1024) {
+    if (++events_ > 50000 ||
+        bytes_ + line.size() > std::size_t{8} * 1024 * 1024) {
       stream_ << "{\"type\":\"truncated\"}\n" << std::flush;
       truncated_ = true;
       return;
