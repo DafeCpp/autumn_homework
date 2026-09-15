@@ -4,6 +4,8 @@
 
 namespace graph_trace {
 namespace {
+// Заключает текст в кавычки JSON и экранирует кавычки, обратные слеши
+// и управляющие символы, чтобы подпись шага не нарушала формат записи.
 std::string Quote(std::string_view text) {
   std::string result = "\"";
   for (unsigned char ch : text) {
@@ -37,8 +39,6 @@ void Recorder::Graph(int count, bool directed, int first) {
         ",\"first\":" + std::to_string(first) +
         ",\"directed\":" + (directed ? "true}" : "false}"));
 }
-// IDs are zero-based positions of edges in the input, also for parallel
-// edges.
 void Recorder::AddEdge(int id, int from, int to) {
   if (!IsEnabled()) return;
   Write("{\"type\":\"add_edge\",\"id\":" + std::to_string(id) + ",\"from\":" +
@@ -68,7 +68,7 @@ void Recorder::State(std::string_view type, int id, std::string_view state) {
 }
 void Recorder::Write(const std::string& line) {
   if (!IsEnabled()) return;
-  // Bound disk usage, including for accidental infinite loops.
+  // Ограничиваем объём записи, в том числе при случайном бесконечном цикле.
   if (++events_ > 50000 ||
       bytes_ + line.size() > std::size_t{8} * 1024 * 1024) {
     stream_ << "{\"type\":\"truncated\"}\n" << std::flush;
