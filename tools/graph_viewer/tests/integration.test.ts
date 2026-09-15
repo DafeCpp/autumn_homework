@@ -37,7 +37,7 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
     assert.equal(await readFile(marker,'utf8'),'sentinel');
     // C++ JSON escaping and bounded logging, including infinite-loop-like output.
     const probe=join(root,'probe.cpp'),probeExe=join(root,'probe');
-    await writeFile(probe,'#include "graph_trace.hpp"\nint main(){graph_trace::Recorder t;t.graph(1);t.step("quote \\\" slash \\\\ newline \\n Привет");for(int i=0;i<60000;++i)t.step("loop");t.finish();}\n');
+    await writeFile(probe,'#include "graph_trace.hpp"\nint main(){graph_trace::Recorder t;t.Graph(1);t.Step("quote \\\" slash \\\\ newline \\n Привет");for(int i=0;i<60000;++i)t.Step("loop");t.Finish();}\n');
     run('c++',['-std=c++17','-Ilib/src',probe,'-o',probeExe]);
     const recorded=join(root,'probe.jsonl');run(probeExe,[],undefined,{...process.env,GRAPH_TRACE:recorded});
     const parsed=parseTrace(await readFile(recorded,'utf8'),parseGraph('1 0',false,1));

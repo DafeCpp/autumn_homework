@@ -86,7 +86,7 @@ python3 scripts/run_cases.py --example bfs_visualization --build-dir .graph-buil
 const auto plain = bfs_example::Bfs(n, edges);  // без записи
 auto trace = std::make_shared<graph_trace::Recorder>();
 const auto recorded = bfs_example::Bfs(n, edges, trace);  // с записью
-trace->finish();
+trace->Finish();
 ```
 
 `./visualize` автоматически запускает и GTest, и файловые тесты.
@@ -110,17 +110,17 @@ ctest --test-dir .graph-build/demo/examples/bfs_visualization --output-on-failur
 ## Где добавлены вызовы визуализации
 
 `main.cpp` создаёт запись через `std::make_shared<graph_trace::Recorder>()`,
-передаёт умный указатель алгоритму и вызывает `trace->finish()` после его завершения.
+передаёт умный указатель алгоритму и вызывает `trace->Finish()` после его завершения.
 BFS принимает `const std::shared_ptr<graph_trace::Recorder>&`, поэтому не копирует
 умный указатель. По умолчанию указатель пустой — запись отключена. В `bfs.cpp` все обращения
 к записи обёрнуты в `if (trace)`, поэтому тот же алгоритм работает без просмотрщика.
 
-1. В начале BFS записываются `trace->graph(n)` и рёбра через `trace->add_edge(id, u, v)`.
+1. В начале BFS записываются `trace->Graph(n)` и рёбра через `trace->AddEdge(id, u, v)`.
    ID — номер ребра во входном файле, **с нуля**, даже если вершины нумеруются с 1.
-2. После добавления вершины в очередь — `trace->node(v, "queued")`.
-3. После извлечения из очереди — `trace->node(v, "active")`.
-4. После вычисления расстояния — `trace->value(v, "distance", distance[v])`.
-5. После обработки соседей — `trace->step("Обработали соседей")`.
+2. После добавления вершины в очередь — `trace->Node(v, "queued")`.
+3. После извлечения из очереди — `trace->Node(v, "active")`.
+4. После вычисления расстояния — `trace->Value(v, "distance", distance[v])`.
+5. После обработки соседей — `trace->Step("Обработали соседей")`.
    Этот вызов создаёт кадр со всеми изменениями с предыдущего шага.
 6. Затем вершина помечается `done`. Она станет обработанной в следующем кадре.
 7. В конце алгоритма создаётся финальный `step`.
@@ -129,11 +129,11 @@ BFS принимает `const std::shared_ptr<graph_trace::Recorder>&`, поэт
 
 ```cpp
 if (trace) {
-  trace->value(v, "queue_size", static_cast<int>(queue.size()));
+  trace->Value(v, "queue_size", static_cast<int>(queue.size()));
 }
 ```
 
-Поставьте вызов перед `trace->step(...)`. Новое значение появится в таблице.
+Поставьте вызов перед `trace->Step(...)`. Новое значение появится в таблице.
 Порядок внутри очереди просмотрщик не показывает: цветом отмечается её состав.
 
 ## Подключение к своему заданию
@@ -144,7 +144,7 @@ if (trace) {
 #include "graph_trace.hpp"
 
 graph_trace::Recorder trace;
-trace.graph(n, true, 0);  // ориентированный граф, вершины от 0
+trace.Graph(n, true, 0);  // ориентированный граф, вершины от 0
 ```
 
 Для `task_01` используйте `true, 0`, для `task_02` — `true, 1`,

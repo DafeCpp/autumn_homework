@@ -17,7 +17,7 @@ int main() {
   }
   auto trace = std::make_shared<graph_trace::Recorder>();
   const auto distance = bfs_example::Bfs(n, edges, trace);
-  trace->finish();
+  trace->Finish();
   for (int v = 1; v <= n; ++v) {
     if (v > 1) std::cout << ' ';
     std::cout << distance[v];
