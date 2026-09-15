@@ -114,11 +114,13 @@ python3 scripts/run_cases.py --tasks task_01 task_02
 Поддержаны BFS и графы задач `task_01–03`.
 
 ```bash
-cmake -S examples/bfs_visualization -B build/examples/bfs_visualization
-cmake --build build/examples/bfs_visualization
-python3 scripts/run_cases.py --example bfs_visualization --trace-dir
-npm --prefix tools/graph_viewer start
+./visualize
 ```
+
+Команда соберёт учебный BFS, проверит тесты, запишет шаги и запустит просмотрщик.
+Для своего решения: `./visualize task_03`. После изменения кода
+остановите скрипт через Ctrl+C и запустите снова. Сборка хранится отдельно в
+`.graph-build/`.
 
 Откройте **Ports → 8765 → Open in Browser**. Нужен Node.js 24; он добавлен в
 конфигурацию devcontainer. Для существующего Codespace выполните Rebuild Container.

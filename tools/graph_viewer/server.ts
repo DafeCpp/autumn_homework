@@ -153,12 +153,16 @@ function send(response: ServerResponse, body: string | Buffer, type: string, sta
   });
   response.end(body);
 }
-export function viewerServer(repo = REPO, traces = join(repo, '.graph-traces')) {
+export function viewerServer(repo = REPO, traces = join(repo, '.graph-traces'), preferredTask?: string) {
   return createServer(async (request, response) => {
     if (request.method !== 'GET') { send(response, 'Method not allowed', 'text/plain', 405); return; }
     try {
       const url = new URL(request.url || '/', 'http://localhost');
-      if (url.pathname === '/api/cases') send(response, JSON.stringify(await catalog(repo)), 'application/json');
+      if (url.pathname === '/api/cases') {
+        const cases = await catalog(repo);
+        if (preferredTask) cases.sort((a, b) => Number(b.task === preferredTask) - Number(a.task === preferredTask));
+        send(response, JSON.stringify(cases), 'application/json');
+      }
       else if (url.pathname === '/api/case') send(response, JSON.stringify(await caseData(url.searchParams.get('id') || '', repo, traces)), 'application/json');
       else {
         const files: Record<string, [string, string]> = {'/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/model.js': ['model.js','text/javascript'], '/style.css': ['style.css','text/css']};

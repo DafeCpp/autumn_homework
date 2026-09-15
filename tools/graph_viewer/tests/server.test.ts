@@ -41,7 +41,9 @@ test('read-only HTTP API confines files and serves browser assets', async () => 
   const root=await mkdtemp(join(tmpdir(),'graph-server-'));
   const tests=join(root,'task_03','tests');await mkdir(tests,{recursive:true});
   await writeFile(join(tests,'one.in'),'1 0\n');
-  const server=viewerServer(root);
+  const bfs=join(root,'examples','bfs_visualization','tests');
+  await mkdir(bfs,{recursive:true});await writeFile(join(bfs,'demo.in'),'1 0\n');
+  const server=viewerServer(root,join(root,'.graph-traces'),'task_03');
   try {
     await writeFile(join(root,'secret'),'do not expose');
     await symlink(join(root,'secret'),join(tests,'escape.in'));
@@ -49,6 +51,7 @@ test('read-only HTTP API confines files and serves browser assets', async () => 
     await assert.rejects(readBounded(join(root,'secret'),root,3),/слишком/);
     server.listen(0,'127.0.0.1');await once(server,'listening');
     const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    assert.equal((await (await fetch(base+'/api/cases')).json())[0].task,'task_03');
     const response=await fetch(base+'/api/case?id=task_03/tests/one.in');
     assert.equal(response.status,200); assert.equal((await response.json()).graph.n,1);
     assert.equal((await fetch(base+'/api/case?id=../../secret')).status,400);

@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'tools/graph_viewer/**'
+      - 'visualize'
       - 'lib/src/graph_trace.hpp'
       - 'examples/bfs_visualization/**'
       - 'scripts/run_cases.py'
@@ -25,9 +26,7 @@ jobs:
       - run: npm --prefix tools/graph_viewer ci
       - run: npm --prefix tools/graph_viewer run typecheck
       - run: npm --prefix tools/graph_viewer test
-      - run: cmake -S examples/bfs_visualization -B build/examples/bfs_visualization
-      - run: cmake --build build/examples/bfs_visualization
-      - run: python3 scripts/run_cases.py --example bfs_visualization --trace-dir
+      - run: ./visualize --prepare-only
       - uses: actions/upload-artifact@v4
         if: always()
         with:
