@@ -10,15 +10,15 @@ function run(command: string, args: string[], input?: string, env = process.env)
   assert.equal(result.status,0,`${command}: ${result.error || result.stderr || result.stdout}`);
   return result.stdout;
 }
-test('BFS plain and traced answers agree; runner records every case independently',async()=>{
+test('BFS CLI answers agree with fixtures in both recording modes; runner records each case',async()=>{
   const root=await mkdtemp(join(tmpdir(),'graph-bfs-'));
   try {
     const build=join(root,'build'),folder=join(build,'examples','bfs_visualization');
     await mkdir(folder,{recursive:true});
     const executable=join(folder,'bfs_visualization'),plain=join(root,'plain');
     const source=join(REPO,'examples/bfs_visualization');
-    run('c++',['-std=c++17','-Ilib/src',join(source,'src/main.cpp'),'-o',executable]);
-    run('c++',['-std=c++17',join(source,'src/plain.cpp'),'-o',plain]);
+    run('c++',['-std=c++17','-Ilib/src',join(source,'src/main.cpp'),join(source,'src/bfs.cpp'),'-o',executable]);
+    run('c++',['-std=c++17','-Ilib/src',join(source,'src/plain.cpp'),join(source,'src/bfs.cpp'),'-o',plain]);
     const tests=join(source,'tests');
     const traces=join(root,'traces');
     const report=run('python3',['scripts/run_cases.py','--example','bfs_visualization','--build-dir',build,'--trace-dir',traces]);

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
@@ -42,6 +43,7 @@ test('one command builds BFS, records tests and serves the viewer', {timeout: 60
       if (output.includes('Просмотрщик готов:')) { clearTimeout(deadline); done(); }
     });
   });
+  assert.match(output, /12 tests from 1 test suite/);
   assert.match(output, /chain: OK/);
   assert.match(output, /Cases run: 6/);
   const response = await fetch(`http://127.0.0.1:${port}/api/case?id=examples/bfs_visualization/tests/chain.in`);
@@ -52,4 +54,22 @@ test('one command builds BFS, records tests and serves the viewer', {timeout: 60
   child.kill('SIGTERM');
   const [code] = await once(child, 'exit');
   assert.equal(code, 0);
+});
+
+
+test('project CMake ignores generated directories named like tasks', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'graph-cmake-'));
+  try {
+    await writeFile(join(root, 'CMakeLists.txt'), await readFile(join(REPO, 'CMakeLists.txt')));
+    for (const folder of ['lib', 'sandbox', 'additional_tasks', 'examples/bfs_visualization', 'task_03']) {
+      await mkdir(join(root, folder), {recursive: true});
+      await writeFile(join(root, folder, 'CMakeLists.txt'), folder === 'task_03' ? 'add_custom_target(task_03)\n' : '');
+    }
+    await mkdir(join(root, '.graph-traces/task_03'), {recursive: true});
+    await mkdir(join(root, '.graph-build/project/task_03'), {recursive: true});
+    const result = spawnSync('cmake', ['-S', root, '-B', join(root, 'build')], {encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const build = spawnSync('cmake', ['--build', join(root, 'build'), '--target', 'task_03'], {encoding: 'utf8'});
+    assert.equal(build.status, 0, build.stdout + build.stderr);
+  } finally { await rm(root, {recursive: true, force: true}); }
 });

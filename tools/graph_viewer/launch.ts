@@ -53,11 +53,14 @@ async function main() {
   const build = task ? buildRoot : join(buildRoot, 'examples/bfs_visualization');
   console.log(`\n1/3 · Собираем ${task || 'учебный BFS'}…`);
   run('cmake', ['-S', source, '-B', build]);
-  run('cmake', ['--build', build, '--target', task || 'bfs_visualization', '--parallel', '2']);
+  const target = task || 'bfs_visualization';
+  run('cmake', ['--build', build, '--target', target, target + '_tests', '--parallel', '2']);
   console.log('\n2/3 · Проверяем тесты и записываем шаги…');
-  const testCode = run('python3', [join(REPO, 'scripts/run_cases.py'),
+  const unitCode = run(join(build, task || '', target + '_tests'), [], true);
+  const fileCode = run('python3', [join(REPO, 'scripts/run_cases.py'),
     ...(task ? ['--tasks', task] : ['--example', 'bfs_visualization']),
     '--build-dir', buildRoot, '--trace-dir', join(REPO, '.graph-traces'), '--save-actual'], true);
+  const testCode = unitCode || fileCode;
   if (values['prepare-only']) {
     process.exitCode = testCode;
     console.log('\nЗаписи подготовлены.');
