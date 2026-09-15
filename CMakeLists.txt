@@ -19,3 +19,5 @@ foreach(dir ${tasks_dirs})
         CONTINUE()
     ENDIF()
 endforeach()
+
+add_subdirectory(examples/bfs_visualization)

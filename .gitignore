@@ -59,3 +59,7 @@ build/*
 # Allow expected outputs for tests to be committed
 !**/tests/*.out
 !**/tests/**/*.out
+# Visualization recordings
+.graph-traces/
+__pycache__/
+node_modules/

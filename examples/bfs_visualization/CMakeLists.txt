@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+project(bfs_visualization LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_executable(bfs_visualization src/main.cpp)
+target_include_directories(bfs_visualization PRIVATE ../../lib/src)
+add_executable(bfs_plain src/plain.cpp)

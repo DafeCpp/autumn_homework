@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Графы · Осенний семестр</title><link rel="stylesheet" href="style.css"><script defer src="model.js"></script><script defer src="app.js"></script></head>
+<body>
+<header><div class="brand">◉ <span>Графы</span></div><span class="subtitle">Лаборатория алгоритмов / осенний семестр</span><span class="badge">В вашем Codespace</span></header>
+<main>
+<aside>
+  <p class="eyebrow">01 / ВЫБЕРИТЕ ПРИМЕР</p><h1>Посмотрите, как<br>работает алгоритм.</h1>
+  <label for="case">Задача и тест</label><select id="case"><option>Загрузка…</option></select>
+  <p id="description" class="muted"></p>
+  <details open><summary>Входные данные</summary><pre id="input"></pre></details>
+  <details><summary>Эталонный ответ</summary><pre id="expected"></pre></details>
+  <details><summary>Ответ программы при несовпадении</summary><pre id="actual"></pre></details>
+  <label for="answer">Подсветка ответа task_03</label><select id="answer"><option value="">Без подсветки</option><option value="expected">Эталон</option><option value="actual">Ответ программы</option></select>
+  <div class="hint"><strong>Как записать шаги</strong><p>Запустите тесты с <code>--trace-dir</code>. Новая запись появится здесь автоматически.</p><a href="https://github.com/DafeCpp/autumn_homework" target="_blank" rel="noreferrer">Репозиторий ↗</a></div>
+</aside>
+<section class="workspace">
+  <div id="notice" role="status" aria-live="polite"></div>
+  <div class="toolbar"><div><p class="eyebrow">02 / ИССЛЕДУЙТЕ ГРАФ</p><strong id="graph-title">Граф теста</strong></div><div class="tools"><button id="zoom-in" aria-label="Приблизить">＋</button><button id="zoom-out" aria-label="Отдалить">−</button><button id="fit">Вместить</button></div></div>
+  <div class="canvas"><svg id="graph" viewBox="0 0 900 570" role="img" aria-label="Граф выбранного теста"></svg><div class="canvas-tip">Перетаскивайте вершины · колесо — масштаб · фон — перемещение</div></div>
+  <div class="legend"><span class="dot queued"></span>В очереди <span class="dot active"></span>Текущая <span class="dot done"></span>Обработана <span class="dot bridge"></span>Критический элемент</div>
+  <div class="experiment"><label><input id="experiment" type="checkbox"> Эксперимент: отключать элементы по клику</label><button id="restore">Восстановить граф</button><span id="components"></span></div>
+  <div class="player"><div class="player-heading"><span class="eyebrow">03 / ШАГИ РЕШЕНИЯ</span><span id="counter"></span></div><p id="step-label">Выберите тест</p><div class="controls"><button id="first" aria-label="Сначала">↤</button><button id="previous" aria-label="Предыдущий шаг">←</button><button id="play" class="primary">▶ Воспроизвести</button><button id="next" aria-label="Следующий шаг">→</button><input id="timeline" type="range" min="0" max="0" value="0" aria-label="Шаг решения"><select id="speed" aria-label="Скорость"><option value="1000">1×</option><option value="500">2×</option><option value="2000">½×</option></select></div></div>
+  <details class="variables" open><summary>Состояние вершин</summary><div class="table-scroll"><table><thead><tr><th>Вершина</th><th>Состояние</th><th>Значения</th></tr></thead><tbody id="values"></tbody></table></div></details>
+</section></main>
+</body></html>

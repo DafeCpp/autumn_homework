@@ -105,3 +105,21 @@ python3 scripts/run_cases.py --tasks task_01 task_02
  - **MEM_EXCEEDED**: программа превысила мягкий лимит памяти (`--mem-limit-mb`). Можно сделать критичным флагом `--fail-on-mem`.
 - **NO_EXPECTED**: отсутствует файл эталона `.out` для кейса (можно создать через `--write-missing`).
 - **EXEC_MISSING**: не найден исполняемый файл задачи в `build/<task>/<task>`.
+
+## Визуализация графов в Codespaces
+
+[Учебный пример BFS](examples/bfs_visualization/README.md) показывает, как добавить
+запись шагов в своё C++-решение. Просмотрщик использует те же `.in/.out`-тесты,
+что `run_cases.py`, и открывается в браузере через порт Codespace.
+Поддержаны BFS и графы задач `task_01–03`.
+
+```bash
+cmake -S examples/bfs_visualization -B build/examples/bfs_visualization
+cmake --build build/examples/bfs_visualization
+python3 scripts/run_cases.py --example bfs_visualization --trace-dir
+npm --prefix tools/graph_viewer start
+```
+
+Откройте **Ports → 8765 → Open in Browser**. Нужен Node.js 24; он добавлен в
+конфигурацию devcontainer. Для существующего Codespace выполните Rebuild Container.
+Для запуска просмотрщика установка npm-пакетов не требуется.
