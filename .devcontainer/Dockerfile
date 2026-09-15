@@ -1,10 +1,18 @@
-# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.195.0/containers/cpp/.devcontainer/base.Dockerfile
-# [Choice] Debian / Ubuntu version (use Debian 11/9, Ubuntu 18.04/21.04 on local arm64/Apple Silicon): debian-11, debian-10, debian-9, ubuntu-21.04, ubuntu-20.04, ubuntu-18.04
+# Ubuntu 24.04 provides GCC 13 and Clang 18; keep formatting aligned with CI.
 ARG VARIANT=ubuntu-24.04
 FROM mcr.microsoft.com/devcontainers/cpp:${VARIANT}
 
-# [Optional] Uncomment this section to install additional packages.
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends clang clang-format clangd libgtest-dev
+# GCC, CMake and GDB are provided by the C++ base image.
+# clang-tidy-19 matches .github/workflows/clang-tidy-review.yaml.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
+        clang \
+        clang-format \
+        clangd \
+        clang-tidy-19 \
+        libgtest-dev \
+        ninja-build \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY first-run-notice.txt /tmp/scripts/
