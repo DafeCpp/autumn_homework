@@ -4,7 +4,7 @@ on:
     paths:
       - 'tools/graph_viewer/**'
       - 'visualize'
-      - 'lib/src/graph_trace.hpp'
+      - 'lib/src/graph_trace.*'
       - 'examples/bfs_visualization/**'
       - 'scripts/run_cases.py'
       - '.devcontainer/**'

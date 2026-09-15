@@ -17,8 +17,8 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
     await mkdir(folder,{recursive:true});
     const executable=join(folder,'bfs_visualization'),plain=join(root,'plain');
     const source=join(REPO,'examples/bfs_visualization');
-    run('c++',['-std=c++17','-Ilib/src',join(source,'src/main.cpp'),join(source,'src/bfs.cpp'),'-o',executable]);
-    run('c++',['-std=c++17','-Ilib/src',join(source,'src/plain.cpp'),join(source,'src/bfs.cpp'),'-o',plain]);
+    run('c++',['-std=c++17','-Ilib/src',join(source,'src/main.cpp'),join(source,'src/bfs.cpp'),'lib/src/graph_trace.cpp','-o',executable]);
+    run('c++',['-std=c++17','-Ilib/src',join(source,'src/plain.cpp'),join(source,'src/bfs.cpp'),'lib/src/graph_trace.cpp','-o',plain]);
     const tests=join(source,'tests');
     const traces=join(root,'traces');
     const report=run('python3',['scripts/run_cases.py','--example','bfs_visualization','--build-dir',build,'--trace-dir',traces]);
@@ -38,7 +38,7 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
     // C++ JSON escaping and bounded logging, including infinite-loop-like output.
     const probe=join(root,'probe.cpp'),probeExe=join(root,'probe');
     await writeFile(probe,'#include "graph_trace.hpp"\nint main(){graph_trace::Recorder t;t.Graph(1);t.Step("quote \\\" slash \\\\ newline \\n Привет");for(int i=0;i<60000;++i)t.Step("loop");t.Finish();}\n');
-    run('c++',['-std=c++17','-Ilib/src',probe,'-o',probeExe]);
+    run('c++',['-std=c++17','-Ilib/src',probe,'lib/src/graph_trace.cpp','-o',probeExe]);
     const recorded=join(root,'probe.jsonl');run(probeExe,[],undefined,{...process.env,GRAPH_TRACE:recorded});
     const parsed=parseTrace(await readFile(recorded,'utf8'),parseGraph('1 0',false,1));
     assert.match(parsed.warnings[0],/размеру/);
