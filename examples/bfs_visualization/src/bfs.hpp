@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 namespace graph_trace {
@@ -17,5 +18,5 @@ struct Edge {
 // Throws std::invalid_argument for n <= 0 or endpoints outside 1..n.
 // Recording is optional; the caller finishes the recording after the call.
 std::vector<int> Bfs(int n, const std::vector<Edge>& edges,
-                     graph_trace::Recorder* trace = nullptr);
+                     const std::shared_ptr<graph_trace::Recorder>& trace = {});
 }  // namespace bfs_example

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "bfs.hpp"
@@ -14,9 +15,9 @@ int main() {
         edge.to < 1 || edge.to > n)
       return 1;
   }
-  graph_trace::Recorder trace;
-  const auto distance = bfs_example::Bfs(n, edges, &trace);
-  trace.finish();
+  auto trace = std::make_shared<graph_trace::Recorder>();
+  const auto distance = bfs_example::Bfs(n, edges, trace);
+  trace->finish();
   for (int v = 1; v <= n; ++v) {
     if (v > 1) std::cout << ' ';
     std::cout << distance[v];

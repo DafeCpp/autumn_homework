@@ -9,7 +9,7 @@
 
 namespace bfs_example {
 std::vector<int> Bfs(int n, const std::vector<Edge>& edges,
-                     graph_trace::Recorder* trace) {
+                     const std::shared_ptr<graph_trace::Recorder>& trace) {
   if (n <= 0) throw std::invalid_argument("The graph must have a vertex 1");
   for (const auto& edge : edges) {
     if (edge.from < 1 || edge.from > n || edge.to < 1 || edge.to > n) {

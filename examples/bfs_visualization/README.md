@@ -83,8 +83,10 @@ python3 scripts/run_cases.py --example bfs_visualization --build-dir .graph-buil
 концы рёбер вызывают `std::invalid_argument`.
 
 ```cpp
-const auto plain = bfs_example::Bfs(n, edges);             // без записи
-const auto recorded = bfs_example::Bfs(n, edges, &trace);  // с записью
+const auto plain = bfs_example::Bfs(n, edges);  // без записи
+auto trace = std::make_shared<graph_trace::Recorder>();
+const auto recorded = bfs_example::Bfs(n, edges, trace);  // с записью
+trace->finish();
 ```
 
 `./visualize` автоматически запускает и GTest, и файловые тесты.
@@ -107,8 +109,10 @@ ctest --test-dir .graph-build/demo/examples/bfs_visualization --output-on-failur
 
 ## Где добавлены вызовы визуализации
 
-`main.cpp` создаёт `graph_trace::Recorder trace`, передаёт `&trace` алгоритму
-и вызывает `trace.finish()` после его завершения. В `bfs.cpp` все обращения
+`main.cpp` создаёт запись через `std::make_shared<graph_trace::Recorder>()`,
+передаёт умный указатель алгоритму и вызывает `trace->finish()` после его завершения.
+BFS принимает `const std::shared_ptr<graph_trace::Recorder>&`, поэтому не копирует
+умный указатель. По умолчанию указатель пустой — запись отключена. В `bfs.cpp` все обращения
 к записи обёрнуты в `if (trace)`, поэтому тот же алгоритм работает без просмотрщика.
 
 1. В начале BFS записываются `trace->graph(n)` и рёбра через `trace->add_edge(id, u, v)`.
