@@ -34,11 +34,11 @@ class Recorder {
     if (path && *path) stream_.open(path);
     Write("{\"type\":\"header\",\"version\":1}");
   }
-  bool Enabled() const {
+  bool IsEnabled() const {
     return stream_.is_open() && stream_.good() && !truncated_;
   }
   void Graph(int count, bool directed = false, int first = 1) {
-    if (!Enabled()) return;
+    if (!IsEnabled()) return;
     Write("{\"type\":\"graph\",\"n\":" + std::to_string(count) +
           ",\"first\":" + std::to_string(first) +
           ",\"directed\":" + (directed ? "true}" : "false}"));
@@ -46,31 +46,31 @@ class Recorder {
   // IDs are zero-based positions of edges in the input, also for parallel
   // edges.
   void AddEdge(int id, int from, int to) {
-    if (!Enabled()) return;
+    if (!IsEnabled()) return;
     Write("{\"type\":\"add_edge\",\"id\":" + std::to_string(id) + ",\"from\":" +
           std::to_string(from) + ",\"to\":" + std::to_string(to) + "}");
   }
   void Node(int id, std::string_view state) { State("node", id, state); }
   void Edge(int id, std::string_view state) { State("edge", id, state); }
   void Value(int id, std::string_view name, int value) {
-    if (!Enabled()) return;
+    if (!IsEnabled()) return;
     Write("{\"type\":\"value\",\"id\":" + std::to_string(id) + ",\"name\":" +
           Quote(name) + ",\"value\":" + std::to_string(value) + "}");
   }
   void Step(std::string_view message) {
-    if (!Enabled()) return;
+    if (!IsEnabled()) return;
     Write("{\"type\":\"step\",\"message\":" + Quote(message) + "}");
   }
   void Finish() { Write("{\"type\":\"end\"}"); }
 
  private:
   void State(std::string_view type, int id, std::string_view state) {
-    if (!Enabled()) return;
+    if (!IsEnabled()) return;
     Write("{\"type\":" + Quote(type) + ",\"id\":" + std::to_string(id) +
           ",\"state\":" + Quote(state) + "}");
   }
   void Write(const std::string& line) {
-    if (!Enabled()) return;
+    if (!IsEnabled()) return;
     // Bound disk usage, including for accidental infinite loops.
     if (++events_ > 50000 ||
         bytes_ + line.size() > std::size_t{8} * 1024 * 1024) {
