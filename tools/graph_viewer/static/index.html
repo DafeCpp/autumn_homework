@@ -14,10 +14,13 @@
   <label for="answer">Подсветка ответа task_03</label><select id="answer"><option value="">Без подсветки</option><option value="expected">Эталон</option><option value="actual">Ответ программы</option></select>
   <div class="hint"><strong>Как записать шаги</strong><p>Запустите тесты с <code>--trace-dir</code>. Новая запись появится здесь автоматически.</p><a href="https://github.com/DafeCpp/autumn_homework" target="_blank" rel="noreferrer">Репозиторий ↗</a></div>
 </aside>
-<section class="workspace">
+<section class="workspace" id="viewer">
   <div id="notice" role="status" aria-live="polite"></div>
-  <div class="toolbar"><div><p class="eyebrow">02 / ИССЛЕДУЙТЕ ГРАФ</p><strong id="graph-title">Граф теста</strong></div><div class="tools"><select id="view-mode" aria-label="Вид графа"><option value="graph">Исходный граф</option><option value="tree">Дерево обхода</option></select><button id="zoom-in" aria-label="Приблизить">＋</button><button id="zoom-out" aria-label="Отдалить">−</button><button id="fit">Вместить</button></div></div>
-  <div class="canvas"><svg id="graph" viewBox="0 0 900 570" role="img" aria-label="Граф выбранного теста"></svg><div class="canvas-tip">Перетаскивайте вершины · колесо — масштаб · фон — перемещение</div></div>
+  <div class="toolbar"><div><p class="eyebrow">02 / ИССЛЕДУЙТЕ ГРАФ</p><strong id="graph-title">Граф теста</strong></div><div class="tools"><select id="view-mode" aria-label="Вид графа"><option value="graph">Исходный граф</option><option value="tree">Дерево обхода</option><option value="both">Граф и дерево</option></select><button id="zoom-in" aria-label="Приблизить">＋</button><button id="zoom-out" aria-label="Отдалить">−</button><button id="fit">Вместить</button><button id="fullscreen" aria-pressed="false">На весь экран</button></div></div>
+  <div id="canvases">
+    <div class="canvas" id="graph-panel"><span class="panel-title">Исходный граф</span><svg id="graph" viewBox="0 0 900 570" role="img" aria-label="Граф выбранного теста"></svg><div class="canvas-tip">Перетаскивайте вершины · колесо — масштаб</div></div>
+    <div class="canvas" id="tree-panel" hidden><span class="panel-title">Дерево обхода</span><svg id="tree" viewBox="0 0 900 570" role="img" aria-label="Дерево обхода выбранного теста"></svg><div class="canvas-tip">Шаги синхронизированы с исходным графом</div></div>
+  </div>
   <div class="legend"><span class="dot queued"></span>В очереди <span class="dot active"></span>Текущая <span class="dot done"></span>Обработана <span class="dot bridge"></span>Критический элемент</div>
   <div class="legend"><span class="edge-sample"></span>Ребро дерева <span class="edge-sample dashed"></span>Обратное / нетревесное ребро</div>
   <p id="tree-note" class="muted" hidden></p>
