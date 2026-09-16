@@ -20,12 +20,8 @@ async function get(url) {
   return body;
 }
 function resetPositions() {
-  const positions = new Map();
-  for (let i = 0; i < data.graph.n; i++) {
-    const angle = -Math.PI / 2 + 2 * Math.PI * i / data.graph.n;
-    positions.set(i + data.graph.first, data.graph.n === 1 ? [450, 275] : [450 + 225 * Math.cos(angle), 275 + 215 * Math.sin(angle)]);
-  }
-  views[0].positions = positions; views[0].box = [0,0,900,570]; treeKey = '';
+  const layout = GraphLayout.layout(data.graph);
+  views[0].positions = layout.positions; views[0].box = layout.box; treeKey = '';
 }
 async function load(refresh = false) {
   if (loading) return;

@@ -165,7 +165,7 @@ export function viewerServer(repo = REPO, traces = join(repo, '.graph-traces'), 
       }
       else if (url.pathname === '/api/case') send(response, JSON.stringify(await caseData(url.searchParams.get('id') || '', repo, traces)), 'application/json');
       else {
-        const files: Record<string, [string, string]> = {'/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/model.js': ['model.js','text/javascript'], '/style.css': ['style.css','text/css'], '/favicon.svg': ['favicon.svg','image/svg+xml']};
+        const files: Record<string, [string, string]> = {'/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/layout.js': ['layout.js','text/javascript'], '/model.js': ['model.js','text/javascript'], '/style.css': ['style.css','text/css'], '/favicon.svg': ['favicon.svg','image/svg+xml']};
         const entry = files[url.pathname];
         if (!entry) { send(response, 'Not found', 'text/plain', 404); return; }
         send(response, await readFile(join(STATIC, entry[0])), entry[1]);
