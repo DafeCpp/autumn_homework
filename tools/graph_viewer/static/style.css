@@ -33,3 +33,4 @@ svg{user-select:none}
 }
 
 #scc-state { margin:0 0 12px; line-height:1.7; }
+.node .scc-value { font-size:12px; font-weight:650; paint-order:stroke; stroke:#fff; stroke-width:4px; stroke-linejoin:round; }

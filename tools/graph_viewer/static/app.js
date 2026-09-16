@@ -143,12 +143,19 @@ function drawGraph(view, tree, state, answer) {
   for (const [v, [x,y]] of positions) {
     const g = element('g',{transform:`translate(${x} ${y})`,class:`node ${state.nodes.get(v)||''} ${answer.nodes.has(v)?'answer':''} ${removedNodes.has(v)?'removed':''}`,'data-node':v});
     const circle = element('circle',{r:20});
+    const tarjan = data.task === 'tarjan_visualization';
+    const values = state.values.get(v);
     const component = state.values.get(v)?.get('component');
     if (component) {
       circle.style.fill = `hsl(${(component * 137.508) % 360} 65% 85%)`;
-      g.append(element('text',{y:33,class:'distance'},`КСС ${component}`));
+      g.append(element('text',{y:tarjan ? 63 : 33,class:'distance'},`КСС ${component}`));
     }
     g.append(circle,element('text',{},v));
+    if (tarjan) {
+      // Read the selected frame, so rewinding also restores earlier lowlink values.
+      g.append(element('text',{y:33,class:'scc-value'},`tin = ${values?.get('index') ?? '—'}`),
+        element('text',{y:48,class:'scc-value'},`low = ${values?.get('lowlink') ?? '—'}`));
+    }
     const distance = state.values.get(v)?.get('distance');
     if (distance !== undefined) g.append(element('text',{y:33,class:'distance'},`d = ${distance}`));
     svg.append(g);
