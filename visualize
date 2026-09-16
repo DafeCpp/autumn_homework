@@ -1,0 +1,13 @@
+#!/bin/sh
+# Resolve paths relative to this script, even when called from another directory.
+set -eu
+VISUALIZE_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! command -v node >/dev/null 2>&1; then
+  echo 'Нужен Node.js 24. В Codespaces выполните Rebuild Container.' >&2
+  exit 1
+fi
+if [ "$(node -p 'Number(process.versions.node.split(".")[0])')" -lt 24 ]; then
+  echo 'Нужен Node.js 24 или новее. В Codespaces выполните Rebuild Container.' >&2
+  exit 1
+fi
+exec node "$VISUALIZE_ROOT/tools/graph_viewer/launch.ts" "$@"

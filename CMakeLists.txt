@@ -8,14 +8,13 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/sandbox)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/additional_tasks)
 
-file(GLOB_RECURSE tasks_dirs LIST_DIRECTORIES true ".")
-
-foreach(dir ${tasks_dirs})
-    IF(IS_DIRECTORY ${dir})
-        IF(${dir} MATCHES "task_0[0-9]$" AND NOT ${dir} MATCHES "build")
-            add_subdirectory(${dir})
-        ENDIF()
-    ELSE()
-        CONTINUE()
-    ENDIF()
+# Only top-level task sources belong to the build. Generated recordings and
+# nested build directories may also contain folders named task_03, etc.
+file(GLOB tasks_dirs LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/task_0[0-9]")
+foreach(dir IN LISTS tasks_dirs)
+    if(IS_DIRECTORY "${dir}")
+        add_subdirectory("${dir}")
+    endif()
 endforeach()
+
+add_subdirectory(examples/bfs_visualization)
