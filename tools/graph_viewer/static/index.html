@@ -18,8 +18,8 @@
   <div id="notice" role="status" aria-live="polite"></div>
   <div class="toolbar"><div><p class="eyebrow">02 / ИССЛЕДУЙТЕ ГРАФ</p><strong id="graph-title">Граф теста</strong></div><div class="tools"><select id="view-mode" aria-label="Вид графа"><option value="graph">Исходный граф</option><option value="tree">Дерево обхода</option><option value="both">Граф и дерево</option></select><button id="zoom-in" aria-label="Приблизить">＋</button><button id="zoom-out" aria-label="Отдалить">−</button><button id="fit">Вместить</button><button id="fullscreen" aria-pressed="false">На весь экран</button></div></div>
   <div id="canvases">
-    <div class="canvas" id="graph-panel"><span class="panel-title">Исходный граф</span><svg id="graph" viewBox="0 0 900 570" role="img" aria-label="Граф выбранного теста"></svg><div class="canvas-tip">Перетаскивайте вершины · колесо — масштаб</div></div>
-    <div class="canvas" id="tree-panel" hidden><span class="panel-title">Дерево обхода</span><svg id="tree" viewBox="0 0 900 570" role="img" aria-label="Дерево обхода выбранного теста"></svg><div class="canvas-tip">Шаги синхронизированы с исходным графом</div></div>
+    <div class="canvas" id="graph-panel"><span class="panel-title">Исходный граф</span><svg id="graph" viewBox="0 0 900 570" role="img" aria-label="Граф выбранного теста"></svg><div class="canvas-tip">Колесо — масштаб · двойной щелчок по фону — на весь экран</div></div>
+    <div class="canvas" id="tree-panel" hidden><span class="panel-title">Дерево обхода</span><svg id="tree" viewBox="0 0 900 570" role="img" aria-label="Дерево обхода выбранного теста"></svg><div class="canvas-tip">Двойной щелчок по фону — на весь экран</div></div>
   </div>
   <div class="legend"><span class="dot queued"></span>В очереди <span class="dot active"></span>Текущая <span class="dot done"></span>Обработана <span class="dot bridge"></span>Критический элемент</div>
   <div class="legend"><span class="edge-sample"></span>Ребро дерева <span class="edge-sample dashed"></span>Обратное / нетревесное ребро</div>

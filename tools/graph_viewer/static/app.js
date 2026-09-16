@@ -155,11 +155,13 @@ $('zoom-in').onclick = () => zoomVisible(.8); $('zoom-out').onclick = () => zoom
 $('fit').onclick = () => { if(data){resetPositions();render();} };
 for (const view of views) {
   const svg = view.svg;
-  let drag = null, dragged = false;
+  let drag = null, dragged = false, startedOnBackground = false;
   const point = e => new DOMPoint(e.clientX,e.clientY).matrixTransform(svg.getScreenCTM().inverse());
   svg.addEventListener('wheel', e => {e.preventDefault();zoom(view,e.deltaY>0?1.1:.9);},{passive:false});
   svg.onpointerdown = e => {
     if (!data) return;
+    // Захват указателя может перенаправить dblclick на SVG даже после щелчка по вершине.
+    startedOnBackground = e.target === svg;
     const node = e.target.closest('[data-node]'), edge = e.target.closest('[data-edge]');
     drag = {node:node?Number(node.dataset.node):null,edge:edge?Number(edge.dataset.edge):null,p:point(e),x:e.clientX,y:e.clientY};
     dragged=false; svg.setPointerCapture(e.pointerId);
@@ -180,6 +182,11 @@ for (const view of views) {
     collection.has(id) ? collection.delete(id) : collection.add(id); render();
   };
   svg.onpointercancel = () => {drag=null;};
+  // Двойной щелчок по фону открывает полный экран, не затрагивая элементы графа.
+  svg.ondblclick = e => {
+    if (e.target !== svg || !startedOnBackground || dragged || document.fullscreenElement === workspace || workspace.classList.contains('expanded')) return;
+    toggleFullscreen();
+  };
 }
 const workspace = $('viewer');
 function fullscreenState() {
@@ -187,7 +194,7 @@ function fullscreenState() {
   $('fullscreen').textContent = expanded ? 'Свернуть' : 'На весь экран';
   $('fullscreen').setAttribute('aria-pressed', String(expanded));
 }
-$('fullscreen').onclick = async () => {
+async function toggleFullscreen() {
   if (document.fullscreenElement === workspace) await document.exitFullscreen();
   else if (workspace.classList.contains('expanded')) workspace.classList.remove('expanded');
   else {
@@ -200,7 +207,8 @@ $('fullscreen').onclick = async () => {
     }
   }
   fullscreenState();
-};
+}
+$('fullscreen').onclick = toggleFullscreen;
 document.addEventListener('fullscreenchange', fullscreenState);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { workspace.classList.remove('expanded'); fullscreenState(); }
