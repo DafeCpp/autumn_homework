@@ -29,6 +29,12 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
       assert.equal(run(plain,[],input),expected);
       const trace=await readFile(join(traces,'bfs_visualization',file.replace('.in','.jsonl')),'utf8');
       const parsed=parseTrace(trace,parseGraph(input,false,1));
+      const roles=parsed.events.flatMap(e=>e.type==='edge' ? [{id:e.id,state:e.state}] : []);
+      assert.equal(new Set(roles.map(e=>e.id)).size,roles.length,'Each undirected edge classified once');
+      if (file==='parallel_loop.in' || file==='cycle.in') {
+        assert.ok(roles.some(e=>e.state==='non_tree'));
+        assert.ok(roles.some(e=>e.state==='tree'));
+      }
       assert.equal(parsed.warnings.length,0);assert.ok(parsed.events.some(e=>e.type==='step'));
     }
     // Ordinary runs explicitly remove an inherited GRAPH_TRACE destination.

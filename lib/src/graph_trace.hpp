@@ -35,7 +35,9 @@ class Recorder {
   void Node(int id, std::string_view state);
 
   // Меняет состояние ребра по id из AddEdge: "tree" — ребро дерева обхода,
+  // "back" — обратное ребро DFS, "non_tree" — нетревесное ребро BFS,
   // "bridge" — мост, "idle" — обычное ребро. Изменение войдёт в следующий Step.
+  // Подсветка моста сохраняет ранее записанную роль ребра в дереве обхода.
   void Edge(int id, std::string_view state);
 
   // Сохраняет у вершины id целочисленную переменную name со значением value,

@@ -25,6 +25,8 @@ std::vector<int> Bfs(int n, const std::vector<Edge>& edges,
     if (trace) trace->AddEdge(static_cast<int>(id), u, v);
   }
   std::vector<int> distance(n + 1, -1);
+  // Каждое неориентированное ребро классифицируем только при первом проходе.
+  std::vector<bool> examined(edges.size(), false);
   std::queue<int> queue;
   distance[1] = 0;
   queue.push(1);
@@ -38,12 +40,18 @@ std::vector<int> Bfs(int n, const std::vector<Edge>& edges,
     queue.pop();
     if (trace) trace->Node(v, "active");
     for (auto [to, edge_id] : graph[v]) {
-      if (distance[to] != -1) continue;
+      if (examined[edge_id]) continue;
+      examined[edge_id] = true;
+      if (distance[to] != -1) {
+        if (trace) trace->Edge(edge_id, "non_tree");
+        continue;
+      }
       distance[to] = distance[v] + 1;
       queue.push(to);
       if (trace) {
         trace->Node(to, "queued");
         trace->Value(to, "distance", distance[to]);
+        trace->Value(to, "parent", v);
         trace->Edge(edge_id, "tree");
       }
     }
