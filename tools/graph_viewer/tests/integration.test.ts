@@ -28,12 +28,20 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
       const expected=await readFile(join(tests,file.replace('.in','.out')),'utf8');
       assert.equal(run(plain,[],input),expected);
       const trace=await readFile(join(traces,'bfs_visualization',file.replace('.in','.jsonl')),'utf8');
-      const parsed=parseTrace(trace,parseGraph(input,false,1));
+      const graph=parseGraph(input,false,1);
+      const parsed=parseTrace(trace,graph);
       const roles=parsed.events.flatMap(e=>e.type==='edge' ? [{id:e.id,state:e.state}] : []);
       assert.equal(new Set(roles.map(e=>e.id)).size,roles.length,'Each undirected edge classified once');
-      if (file==='parallel_loop.in' || file==='cycle.in') {
-        assert.ok(roles.some(e=>e.state==='non_tree'));
-        assert.ok(roles.some(e=>e.state==='tree'));
+      // Эталонные расстояния определяют достижимую компоненту независимо от записи.
+      const distances=expected.trim().split(/\s+/).map(Number);
+      const reachable=distances.filter(d=>d!==-1).length;
+      const examined=graph.edges.filter(e=>distances[e.from-1]!==-1);
+      const tree=roles.filter(e=>e.state==='tree');
+      assert.equal(tree.length,reachable-1,`${file}: spanning tree size`);
+      assert.equal(roles.filter(e=>e.state==='non_tree').length,examined.length-tree.length);
+      assert.deepEqual(roles.map(e=>e.id).sort((a,b)=>a-b),examined.map(e=>e.id));
+      for (const edge of graph.edges.filter(e=>tree.some(role=>role.id===e.id))) {
+        assert.equal(Math.abs(distances[edge.from-1]-distances[edge.to-1]),1);
       }
       assert.equal(parsed.warnings.length,0);assert.ok(parsed.events.some(e=>e.type==='step'));
     }
