@@ -5,16 +5,18 @@ import { join } from 'node:path';
 import { caseData, REPO } from '../server.ts';
 import '../static/model.js';
 
+const cases = ['three_components', 'five_components', 'disconnected', 'dag', 'single', 'loops_parallel', 'stack_cross_edge'];
+
 // Exercise the real C++ → recorder → runner → server → playback pipeline.
 test('SCC demos build, validate answers and restore both passes and stacks', {timeout: 60000}, async () => {
   const result = spawnSync(join(REPO, 'visualize'), ['scc', '--prepare-only'],
     {encoding: 'utf8', timeout: 55000});
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.equal((result.stdout.match(/Cases run: 6/g) || []).length, 2);
+  assert.equal((result.stdout.match(new RegExp(`Cases run: ${cases.length}\\b`, 'g')) || []).length, 2);
   // The browser model is also consumed directly by existing JS tests.
   const M = (globalThis as any).GraphModel;
   for (const algorithm of ['kosaraju', 'tarjan']) {
-    for (const name of ['three_components', 'disconnected', 'dag', 'single', 'loops_parallel', 'stack_cross_edge']) {
+    for (const name of cases) {
       const data = await caseData(`examples/${algorithm}_visualization/tests/${name}.in`);
       assert.deepEqual(data.warnings, []);
       assert.ok(data.events.length > 0);
