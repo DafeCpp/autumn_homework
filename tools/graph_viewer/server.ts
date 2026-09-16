@@ -85,7 +85,7 @@ export function parseTrace(text: string, graph: Graph): {events: Event[]; warnin
   if (lines.length > 50002) throw Error('Слишком много событий');
   const events: Event[] = [], recorded: Edge[] = [];
   let graphSeen = false, last = '', sealed = false;
-  const states = new Set(['idle', 'queued', 'active', 'done', 'tree', 'bridge', 'cut']);
+  const states = new Set(['idle', 'queued', 'active', 'done', 'tree', 'back', 'non_tree', 'bridge', 'cut']);
   for (const [index, line] of lines.entries()) {
     const e: unknown = JSON.parse(line);
     if (!e || typeof e !== 'object' || Array.isArray(e)) throw Error('Событие должно быть объектом');

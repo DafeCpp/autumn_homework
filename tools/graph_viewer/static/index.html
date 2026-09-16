@@ -16,9 +16,11 @@
 </aside>
 <section class="workspace">
   <div id="notice" role="status" aria-live="polite"></div>
-  <div class="toolbar"><div><p class="eyebrow">02 / ИССЛЕДУЙТЕ ГРАФ</p><strong id="graph-title">Граф теста</strong></div><div class="tools"><button id="zoom-in" aria-label="Приблизить">＋</button><button id="zoom-out" aria-label="Отдалить">−</button><button id="fit">Вместить</button></div></div>
+  <div class="toolbar"><div><p class="eyebrow">02 / ИССЛЕДУЙТЕ ГРАФ</p><strong id="graph-title">Граф теста</strong></div><div class="tools"><select id="view-mode" aria-label="Вид графа"><option value="graph">Исходный граф</option><option value="tree">Дерево обхода</option></select><button id="zoom-in" aria-label="Приблизить">＋</button><button id="zoom-out" aria-label="Отдалить">−</button><button id="fit">Вместить</button></div></div>
   <div class="canvas"><svg id="graph" viewBox="0 0 900 570" role="img" aria-label="Граф выбранного теста"></svg><div class="canvas-tip">Перетаскивайте вершины · колесо — масштаб · фон — перемещение</div></div>
   <div class="legend"><span class="dot queued"></span>В очереди <span class="dot active"></span>Текущая <span class="dot done"></span>Обработана <span class="dot bridge"></span>Критический элемент</div>
+  <div class="legend"><span class="edge-sample"></span>Ребро дерева <span class="edge-sample dashed"></span>Обратное / нетревесное ребро</div>
+  <p id="tree-note" class="muted" hidden></p>
   <div class="experiment"><label><input id="experiment" type="checkbox"> Эксперимент: отключать элементы по клику</label><button id="restore">Восстановить граф</button><span id="components"></span></div>
   <div class="player"><div class="player-heading"><span class="eyebrow">03 / ШАГИ РЕШЕНИЯ</span><span id="counter"></span></div><p id="step-label">Выберите тест</p><div class="controls"><button id="first" aria-label="Сначала">↤</button><button id="previous" aria-label="Предыдущий шаг">←</button><button id="play" class="primary">▶ Воспроизвести</button><button id="next" aria-label="Следующий шаг">→</button><input id="timeline" type="range" min="0" max="0" value="0" aria-label="Шаг решения"><select id="speed" aria-label="Скорость"><option value="1000">1×</option><option value="500">2×</option><option value="2000">½×</option></select></div></div>
   <details class="variables" open><summary>Состояние вершин</summary><div class="table-scroll"><table><thead><tr><th>Вершина</th><th>Состояние</th><th>Значения</th></tr></thead><tbody id="values"></tbody></table></div></details>

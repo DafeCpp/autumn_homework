@@ -4,6 +4,7 @@ const M = GraphModel;
 let data = null, steps = [-1], index = 0, positions = new Map(), timer = null;
 let removedNodes = new Set(), removedEdges = new Set(), signature = '', loading = false;
 let box = [0, 0, 900, 570], drag = null, dragged = false;
+let graphPositions = new Map(), treeKey = '';
 const svg = $('graph');
 function element(tag, attrs = {}, text = null) {
   const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -24,6 +25,7 @@ function resetPositions() {
     const angle = -Math.PI / 2 + 2 * Math.PI * i / data.graph.n;
     positions.set(i + data.graph.first, data.graph.n === 1 ? [450, 275] : [450 + 225 * Math.cos(angle), 275 + 215 * Math.sin(angle)]);
   }
+  graphPositions = positions; treeKey = '';
   box = [0, 0, 900, 570];
 }
 async function load(refresh = false) {
@@ -55,14 +57,14 @@ async function load(refresh = false) {
     showError(error);
   } finally { loading = false; if ($('case').value !== requested) load(); }
 }
-function edgePath(e) {
+function edgePath(e, curved = false) {
   const [x1, y1] = positions.get(e.from), [x2, y2] = positions.get(e.to);
   if (e.from === e.to) {
     const loop = data.graph.edges.filter(x => x.from === e.from && x.to === e.to).findIndex(x => x.id === e.id);
     return `M ${x1-12} ${y1-15} C ${x1-65-loop*14} ${y1-85-loop*14}, ${x1+65+loop*14} ${y1-85-loop*14}, ${x1+12} ${y1-15}`;
   }
   const peers = data.graph.edges.filter(x => Math.min(x.from,x.to) === Math.min(e.from,e.to) && Math.max(x.from,x.to) === Math.max(e.from,e.to));
-  const offset = (peers.findIndex(x => x.id === e.id) - (peers.length-1)/2) * 35 * (e.from < e.to ? 1 : -1);
+  const offset = (peers.findIndex(x => x.id === e.id) - (peers.length-1)/2) * 35 * (e.from < e.to ? 1 : -1) + (curved ? 100 : 0);
   const length = Math.hypot(x2-x1, y2-y1) || 1;
   const cx = (x1+x2)/2 - (y2-y1)/length*offset, cy = (y1+y2)/2 + (x2-x1)/length*offset;
   const startLength = Math.hypot(cx-x1,cy-y1) || 1, endLength = Math.hypot(x2-cx,y2-cy) || 1;
@@ -71,15 +73,25 @@ function edgePath(e) {
 function render() {
   if (!data) return;
   const state = M.state(data.events, steps[index]);
+  const tree = $('view-mode').value === 'tree';
+  const key = signature + ':' + index;
+  if (tree && treeKey !== key) {
+    const layout = M.traversal(data.graph, state);
+    positions = layout.positions; box = layout.box; treeKey = key;
+  }
+  $('tree-note').hidden = !tree;
+  $('tree-note').textContent = 'Показаны только записанные рёбра обхода. Непосещённые вершины — в нижнем ряду. В BFS пунктир означает нетревесные рёбра; обратные рёбра DFS ведут к предку.';
   let answer = {nodes:new Set(), edges:new Set()};
   try { answer = M.answer(data.task, data[$('answer').value] || '', data.graph); } catch(error) { showError(error); }
   svg.replaceChildren(); svg.setAttribute('viewBox',box.join(' '));
   const defs = element('defs'), marker = element('marker',{id:'arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
   marker.append(element('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#6b897b'}));defs.append(marker);svg.append(defs);
   for (const e of data.graph.edges) {
+    const role = state.roles.get(e.id) || '';
+    if (tree && !role) continue;
     const hidden = removedEdges.has(e.id) || removedNodes.has(e.from) || removedNodes.has(e.to);
-    const d = edgePath(e);
-    const path = element('path',{d,class:`edge ${state.edges.get(e.id)||''} ${answer.edges.has(e.id)?'answer':''} ${hidden?'removed':''}`});
+    const d = edgePath(e, tree && ['back', 'non_tree'].includes(role));
+    const path = element('path',{d,class:`edge ${role} ${state.edges.get(e.id)||''} ${answer.edges.has(e.id)?'answer':''} ${hidden?'removed':''}`});
     if (data.graph.directed) path.setAttribute('marker-end','url(#arrow)');
     const hit = element('path',{d,class:'edge-hit','data-edge':e.id});
     hit.append(element('title',{},`Ребро ${e.id}: ${e.from} — ${e.to}`));svg.append(path,hit);
@@ -124,6 +136,10 @@ $('play').onclick = () => {
 };
 $('case').onchange = () => { stop(); load(); };
 $('answer').onchange = render;
+$('view-mode').onchange = () => {
+  if ($('view-mode').value === 'graph') { positions = graphPositions; box = [0,0,900,570]; }
+  treeKey = ''; render();
+};
 $('restore').onclick = () => { removedNodes.clear();removedEdges.clear();render(); };
 $('experiment').onchange = () => { if (!$('experiment').checked) { removedNodes.clear();removedEdges.clear();render(); } };
 function zoom(factor) { box = [box[0]+box[2]*(1-factor)/2,box[1]+box[3]*(1-factor)/2,box[2]*factor,box[3]*factor];svg.setAttribute('viewBox',box.join(' ')); }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
@@ -44,8 +44,15 @@ test('one command builds BFS, records tests and serves the viewer', {timeout: 60
     });
   });
   assert.match(output, /12 tests from 1 test suite/);
-  assert.match(output, /chain: OK/);
-  assert.match(output, /Cases run: 6/);
+  // Число примеров меняется при добавлении графов: сверяем запуск с файлами.
+  const cases = (await readdir(join(REPO, 'examples/bfs_visualization/tests')))
+    .filter(name => name.endsWith('.in'));
+  assert.ok(cases.length > 0);
+  assert.equal(Number(output.match(/^Cases run: (\d+)$/m)?.[1]), cases.length);
+  for (const file of cases) {
+    assert.ok(output.split('\n').some(line => line.startsWith(`${file.slice(0, -3)}: OK (`)),
+      `Missing successful result for ${file}`);
+  }
   const response = await fetch(`http://127.0.0.1:${port}/api/case?id=examples/bfs_visualization/tests/chain.in`);
   assert.equal(response.status, 200);
   const body = await response.json();
