@@ -25,6 +25,8 @@ async function main() {
   if (values.help) {
     console.log(`Запуск из корня репозитория:
   ./visualize                 Собрать BFS, записать шаги и открыть просмотрщик
+  ./visualize scc             Косарайю и Тарьян: собрать оба примера и записать шаги
+  ./visualize kosaraju        Только Косарайю (также: tarjan)
   ./visualize task_03         Собрать своё решение и открыть его тесты
   ./visualize --port 8766     Использовать другой порт
   ./visualize --prepare-only Собрать и записать шаги без запуска сервера
@@ -39,35 +41,39 @@ async function main() {
     throw Error('Укажите одну задачу: ./visualize task_03');
   }
   const task = values.task || positionals[0];
-  if (task && !['task_01', 'task_02', 'task_03'].includes(task)) {
-    throw Error('Просмотрщик поддерживает task_01, task_02 или task_03. Без имени задачи запускается BFS.');
+  if (task && !['task_01', 'task_02', 'task_03', 'scc', 'kosaraju', 'tarjan'].includes(task)) {
+    throw Error('Поддерживаются task_01–03, scc, kosaraju, tarjan. Без имени запускается BFS.');
   }
   for (const command of ['cmake', 'python3']) {
     const result = spawnSync(command, ['--version'], {stdio: 'ignore'});
     if (result.error || result.status !== 0) throw Error(`Не найден ${command}. В Codespaces выполните Rebuild Container.`);
   }
-  // Keep standalone-example and whole-project CMake caches separate from each
-  // other and from the student's build/ directory and IDE settings.
-  const buildRoot = join(REPO, '.graph-build', task ? 'project' : 'demo');
-  const source = task ? REPO : join(REPO, 'examples/bfs_visualization');
-  const build = task ? buildRoot : join(buildRoot, 'examples/bfs_visualization');
-  console.log(`\n1/3 · Собираем ${task || 'учебный BFS'}…`);
-  run('cmake', ['-S', source, '-B', build]);
-  const target = task || 'bfs_visualization';
-  run('cmake', ['--build', build, '--target', target, target + '_tests', '--parallel', '2']);
-  console.log('\n2/3 · Проверяем тесты и записываем шаги…');
-  const unitCode = run(join(build, task || '', target + '_tests'), [], true);
-  const fileCode = run('python3', [join(REPO, 'scripts/run_cases.py'),
-    ...(task ? ['--tasks', task] : ['--example', 'bfs_visualization']),
-    '--build-dir', buildRoot, '--trace-dir', join(REPO, '.graph-traces'), '--save-actual'], true);
-  const testCode = unitCode || fileCode;
+  const projectTask = task?.startsWith('task_') ? task : undefined;
+  const examples = task === 'scc' ? ['kosaraju_visualization', 'tarjan_visualization']
+    : [task === 'kosaraju' || task === 'tarjan' ? task + '_visualization' : 'bfs_visualization'];
+  let testCode = 0;
+  for (const target of projectTask ? [projectTask] : examples) {
+    // Separate CMake caches from students' IDE builds and other examples.
+    const buildRoot = join(REPO, '.graph-build', projectTask ? 'project' : 'demo');
+    const source = projectTask ? REPO : join(REPO, 'examples', target);
+    const build = projectTask ? buildRoot : join(buildRoot, 'examples', target);
+    console.log(`\n1/3 · Собираем ${target}…`);
+    run('cmake', ['-S', source, '-B', build]);
+    run('cmake', ['--build', build, '--target', target, target + '_tests', '--parallel', '2']);
+    console.log('\n2/3 · Проверяем тесты и записываем шаги…');
+    const unitCode = run(join(build, projectTask || '', target + '_tests'), [], true);
+    const fileCode = run('python3', [join(REPO, 'scripts/run_cases.py'),
+      ...(projectTask ? ['--tasks', projectTask] : ['--example', target]),
+      '--build-dir', buildRoot, '--trace-dir', join(REPO, '.graph-traces'), '--save-actual'], true);
+    testCode = testCode || unitCode || fileCode;
+  }
   if (values['prepare-only']) {
     process.exitCode = testCode;
     console.log('\nЗаписи подготовлены.');
     return;
   }
   if (testCode) console.log('\nЕсть непройденные тесты. Их графы и записанные шаги можно изучить в просмотрщике.');
-  const server = viewerServer(REPO, join(REPO, '.graph-traces'), task);
+  const server = viewerServer(REPO, join(REPO, '.graph-traces'), projectTask || (task ? examples[0] : undefined));
   await new Promise<void>((done, reject) => {
     server.once('error', reject);
     server.listen(port, '127.0.0.1', () => done());

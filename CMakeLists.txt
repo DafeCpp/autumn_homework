@@ -18,3 +18,5 @@ foreach(dir IN LISTS tasks_dirs)
 endforeach()
 
 add_subdirectory(examples/bfs_visualization)
+add_subdirectory(examples/kosaraju_visualization)
+add_subdirectory(examples/tarjan_visualization)

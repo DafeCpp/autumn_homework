@@ -12,6 +12,10 @@
           if (['tree', 'back', 'non_tree'].includes(e.state)) roles.set(e.id, e.state);
         }
         if (e.type === 'value') {
+          if (e.name === 'transpose' && e.value === 1) {
+            nodes.clear(); edges.clear(); roles.clear();
+            for (const vars of values.values()) vars.delete('parent');
+          }
           if (!values.has(e.id)) values.set(e.id, new Map());
           values.get(e.id).set(e.name, e.value);
         }
@@ -27,7 +31,11 @@
         adjacency.get(e.from).push(e.to); adjacency.get(e.to).push(e.from);
       }
       // Порядок появления вершин задаёт корни, независимо от порядка концов во входе.
-      const discovered = [...new Set([...state.nodes.keys(), ...state.values.keys(),
+      // finish belongs to the first pass: it must not mark a vertex as
+      // discovered in the new DFS forest on the transposed graph.
+      const transposed = state.values.get(graph.first)?.get('transpose') === 1;
+      const visited = [...state.nodes].filter(([, status]) => status !== 'idle').map(([v]) => v);
+      const discovered = [...new Set([...visited, ...(transposed ? [] : state.values.keys()),
         ...[...adjacency.keys()].filter(v => adjacency.get(v).length)])];
       const roots = discovered.filter(v => !state.values.get(v)?.has('parent'));
       for (const root of [...roots, ...discovered]) {

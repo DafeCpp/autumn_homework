@@ -125,3 +125,15 @@ python3 scripts/run_cases.py --tasks task_01 task_02
 Откройте **Ports → 8765 → Open in Browser**. Нужен Node.js 24; он добавлен в
 конфигурацию devcontainer. Для существующего Codespace выполните Rebuild Container.
 Для запуска просмотрщика установка npm-пакетов не требуется.
+
+## Демонстрация Косарайю и Тарьяна
+
+```bash
+./visualize scc
+```
+
+Откройте **http://localhost:8765** (в Codespaces: **Ports → 8765 → Open in Browser**).
+В списке выберите `kosaraju_visualization / three_components` или
+`tarjan_visualization / three_components`. Есть пошаговый просмотр, перемотка,
+обратный граф Косарайю, стек и lowlink Тарьяна, цветные компоненты.
+[Инструкция и сценарий занятия](examples/scc/README.md).

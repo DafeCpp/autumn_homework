@@ -328,8 +328,8 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         help="On mismatch, write <case>.out.actual with the produced output",
     )
 
-    parser.add_argument("--example", choices=["bfs_visualization"],
-                        help="Run the standalone BFS teaching example")
+    parser.add_argument("--example", choices=["bfs_visualization", "kosaraju_visualization", "tarjan_visualization"],
+                        help="Run a standalone graph teaching example")
     parser.add_argument("--trace-dir", type=Path, nargs="?", const=Path(".graph-traces"),
                         help="Record steps per case (default: .graph-traces)")
 

@@ -68,7 +68,7 @@ test('project CMake ignores generated directories named like tasks', async () =>
   const root = await mkdtemp(join(tmpdir(), 'graph-cmake-'));
   try {
     await writeFile(join(root, 'CMakeLists.txt'), await readFile(join(REPO, 'CMakeLists.txt')));
-    for (const folder of ['lib', 'sandbox', 'additional_tasks', 'examples/bfs_visualization', 'task_03']) {
+    for (const folder of ['lib', 'sandbox', 'additional_tasks', 'examples/bfs_visualization', 'examples/kosaraju_visualization', 'examples/tarjan_visualization', 'task_03']) {
       await mkdir(join(root, folder), {recursive: true});
       await writeFile(join(root, folder, 'CMakeLists.txt'), folder === 'task_03' ? 'add_custom_target(task_03)\n' : '');
     }

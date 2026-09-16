@@ -31,3 +31,5 @@ svg{user-select:none}
   .workspace:is(:fullscreen,.expanded) .eyebrow { display:none; }
   .workspace:is(:fullscreen,.expanded) .canvas-tip { display:none; }
 }
+
+#scc-state { margin:0 0 12px; line-height:1.7; }

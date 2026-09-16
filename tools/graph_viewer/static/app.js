@@ -69,6 +69,29 @@ function render() {
   if (!data) return;
   const state = M.state(data.events, steps[index]);
   const mode = $('view-mode').value;
+  const scc = ['kosaraju_visualization', 'tarjan_visualization'].includes(data.task);
+  const transposed = state.values.get(data.graph.first)?.get('transpose') === 1;
+  document.querySelector('#graph-panel .panel-title').textContent = transposed ? 'Обратный граф Gᵀ' : 'Исходный граф';
+  $('scc-state').hidden = !scc;
+  $('queued-label').textContent = data.task === 'tarjan_visualization' ? 'В стеке КСС после выхода из DFS' : 'В очереди';
+  $('active-label').textContent = scc ? 'В стеке DFS' : 'Текущая';
+  if (scc) {
+    const entries = [...state.values];
+    const stack = entries.filter(([, v]) => v.get('on_stack') === 1)
+      .sort((a,b) => a[1].get('stack_position') - b[1].get('stack_position')).map(([v]) => v);
+    const finish = entries.filter(([, v]) => v.has('finish'))
+      .sort((a,b) => a[1].get('finish') - b[1].get('finish')).map(([v]) => v);
+    const groups = new Map();
+    for (const [v, vars] of entries) {
+      const c = vars.get('component');
+      if (c) { if (!groups.has(c)) groups.set(c, []); groups.get(c).push(v); }
+    }
+    const details = data.task === 'tarjan_visualization'
+      ? `Стек КСС (дно → вершина): ${stack.join(' → ') || 'пуст'}. Жёлтые вершины завершили DFS, но ещё в стеке.`
+      : `Порядок выхода: ${finish.join(' → ') || 'пуст'}. Второй проход: ${[...finish].reverse().join(' → ') || '—'}.`;
+    $('scc-state').textContent = details + ' КСС: ' + ([...groups].map(([c, vs]) =>
+      `${c} = {${vs.sort((a,b)=>a-b).join(', ')}}`).join('; ') || 'пока не выделены');
+  }
   const key = signature + ':' + index;
   if (treeKey !== key) {
     const layout = M.traversal(data.graph, state);
@@ -79,11 +102,12 @@ function render() {
   $('canvases').classList.toggle('split', mode === 'both');
   $('tree-note').hidden = mode === 'graph';
   $('tree-note').textContent = 'Показаны только записанные рёбра обхода. Непосещённые вершины — в нижнем ряду. В BFS пунктир означает нетревесные рёбра; обратные рёбра DFS ведут к предку.';
+  if (data.task === 'tarjan_visualization') $('tree-note').textContent = 'Сплошные рёбра — дерево DFS, пунктир — нетревесные рёбра. Ребро в стек КСС может вести к вершине, уже вышедшей из DFS.';
   let answer = {nodes:new Set(), edges:new Set()};
   try { answer = M.answer(data.task, data[$('answer').value] || '', data.graph); } catch(error) { showError(error); }
   views.forEach((view, i) => drawGraph(view, i === 1, state, answer));
   $('values').replaceChildren();
-  const labels = {queued:'В очереди',active:'Текущая',done:'Обработана',cut:'Критическая'};
+  const labels = {queued:data.task === 'tarjan_visualization' ? 'В стеке КСС' : 'В очереди',active:scc ? 'В стеке DFS' : 'Текущая',done:'Обработана',cut:'Критическая'};
   for (const v of views[0].positions.keys()) {
     const row = document.createElement('tr');
     for (const value of [v, labels[state.nodes.get(v)] || 'Не посещена', [...(state.values.get(v)||[])].map(([k,val])=>`${k} = ${val}`).join(', ') || '—']) {
@@ -112,13 +136,19 @@ function drawGraph(view, tree, state, answer) {
     const hidden = removedEdges.has(e.id) || removedNodes.has(e.from) || removedNodes.has(e.to);
     const d = edgePath(e, positions, tree && ['back', 'non_tree'].includes(role));
     const path = element('path',{d,class:`edge ${role} ${state.edges.get(e.id)||''} ${answer.edges.has(e.id)?'answer':''} ${hidden?'removed':''}`});
-    if (data.graph.directed) path.setAttribute('marker-end',`url(#arrow-${svg.id})`);
+    if (data.graph.directed) path.setAttribute(state.values.get(data.graph.first)?.get('transpose') === 1 ? 'marker-start' : 'marker-end',`url(#arrow-${svg.id})`);
     const hit = element('path',{d,class:'edge-hit','data-edge':e.id});
-    hit.append(element('title',{},`Ребро ${e.id}: ${e.from} — ${e.to}`));svg.append(path,hit);
+    hit.append(element('title',{},`Ребро ${e.id}: ${e.from} ${data.graph.directed ? (state.values.get(data.graph.first)?.get('transpose') === 1 ? '←' : '→') : '—'} ${e.to}`));svg.append(path,hit);
   }
   for (const [v, [x,y]] of positions) {
     const g = element('g',{transform:`translate(${x} ${y})`,class:`node ${state.nodes.get(v)||''} ${answer.nodes.has(v)?'answer':''} ${removedNodes.has(v)?'removed':''}`,'data-node':v});
-    g.append(element('circle',{r:20}),element('text',{},v));
+    const circle = element('circle',{r:20});
+    const component = state.values.get(v)?.get('component');
+    if (component) {
+      circle.style.fill = `hsl(${(component * 137.508) % 360} 65% 85%)`;
+      g.append(element('text',{y:33,class:'distance'},`КСС ${component}`));
+    }
+    g.append(circle,element('text',{},v));
     const distance = state.values.get(v)?.get('distance');
     if (distance !== undefined) g.append(element('text',{y:33,class:'distance'},`d = ${distance}`));
     svg.append(g);

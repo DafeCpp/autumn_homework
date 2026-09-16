@@ -20,6 +20,8 @@ export type Event =
   | {type: 'step'; message: string};
 const TASKS: Record<string, Task> = {
   bfs_visualization: {folder: 'examples/bfs_visualization', directed: false, first: 1, label: 'BFS: расстояния от вершины 1'},
+  kosaraju_visualization: {folder: 'examples/kosaraju_visualization', directed: true, first: 1, label: 'Косарайю: два DFS и обратный граф'},
+  tarjan_visualization: {folder: 'examples/tarjan_visualization', directed: true, first: 1, label: 'Тарьян: index, lowlink и стек компонент'},
   task_01: {folder: 'task_01', directed: true, first: 0, label: 'Зависимости: a → b означает «a зависит от b»'},
   task_02: {folder: 'task_02', directed: true, first: 1, label: 'Односторонние дороги'},
   task_03: {folder: 'task_03', directed: false, first: 1, label: 'Уязвимые места сети'},
