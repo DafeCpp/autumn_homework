@@ -1,15 +1,16 @@
-#include <iostream>
+#include <cstdint>
 #include <stack>
+#include <utility>
 #include <vector>
 
 class Graph {
   int numVertices;
   std::vector<std::vector<int>> adjList;
 
-  enum class Color { White, Gray, Black };
+  enum class Color : std::uint8_t { White, Gray, Black };
 
  public:
-  Graph(int vertices) : numVertices(vertices), adjList(vertices) {}
+  explicit Graph(int vertices) : numVertices(vertices), adjList(vertices) {}
 
   void addEdge(int u, int v) {
     if (u >= 0 && u < numVertices && v >= 0 && v < numVertices) {
@@ -35,7 +36,7 @@ class Graph {
         int& idx = top.second;
 
         bool pushed = false;
-        while (idx < (int)adjList[u].size()) {
+        while (idx < static_cast<int>(adjList[u].size())) {
           int v = adjList[u][idx];
           idx++;
 
