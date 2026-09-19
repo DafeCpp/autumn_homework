@@ -3,7 +3,8 @@
 #include <vector>
 using namespace std;
 
-void static create(int m, vector<vector<int>> &vect) {
+namespace {
+void create(int m, vector<vector<int>> &vect) {
   for (int i = 0; i < m; i++) {
     int first, second;
     cin >> first >> second;
@@ -17,8 +18,8 @@ void static create(int m, vector<vector<int>> &vect) {
   }
 }
 
-void static dfs(int u, vector<vector<int>> &vect, vector<char> &color,
-                vector<int> &sorted, bool &has_cycle) {
+void dfs(int u, vector<vector<int>> &vect, vector<char> &color,
+         vector<int> &sorted, bool &has_cycle) {
   if (color[u] == 'b') return;
   color[u] = 'g';
 
@@ -36,6 +37,7 @@ void static dfs(int u, vector<vector<int>> &vect, vector<char> &color,
   color[u] = 'b';
   sorted.push_back(u);
 }
+}  // namespace
 
 int main() {
   unsigned int n, m;
