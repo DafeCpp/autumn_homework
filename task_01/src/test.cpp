@@ -5,8 +5,12 @@
 #include <graphs.hpp>
 #include <iostream>
 #include <vector>
+
+namespace {
+
 struct Edge {
-  int from, to;
+  int from;
+  int to;
 };
 
 bool isValidTopologicalOrder(const std::vector<int>& order,
@@ -14,7 +18,7 @@ bool isValidTopologicalOrder(const std::vector<int>& order,
   if (order.empty()) return true;
 
   std::vector<int> position(order.size());
-  for (int i = 0; i < (int)order.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(order.size()); ++i) {
     position[order[i]] = i;
   }
 
@@ -43,7 +47,7 @@ void testSimpleGraph() {
   std::vector<Edge> edges = {{0, 1}, {1, 2}};
   assert(isValidTopologicalOrder(order, edges));
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testGraphWithCycle() {
@@ -60,7 +64,7 @@ void testGraphWithCycle() {
 
   assert(result == false);
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testEmptyGraph() {
@@ -80,7 +84,7 @@ void testEmptyGraph() {
     assert(sorted_order[i] == i);
   }
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testSingleVertex() {
@@ -95,7 +99,7 @@ void testSingleVertex() {
   assert(order.size() == 1);
   assert(order[0] == 0);
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testSelfLoop() {
@@ -109,7 +113,7 @@ void testSelfLoop() {
 
   assert(result == false);
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testMultipleComponents() {
@@ -132,7 +136,7 @@ void testMultipleComponents() {
   std::vector<Edge> edges = {{0, 1}, {1, 2}, {3, 4}};
   assert(isValidTopologicalOrder(order, edges));
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testComplexDAG() {
@@ -158,7 +162,7 @@ void testComplexDAG() {
                              {3, 4}, {3, 5}, {4, 6}, {5, 6}};
   assert(isValidTopologicalOrder(order, edges));
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 // Тест 8: Большой цикл
@@ -178,7 +182,7 @@ void testLargeCycle() {
 
   assert(result == false);
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testLongChain() {
@@ -202,7 +206,7 @@ void testLongChain() {
     assert(order[i] == n - 1 - i);
   }
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
 void testInvalidEdges() {
@@ -223,12 +227,14 @@ void testInvalidEdges() {
   std::vector<Edge> edges = {{0, 1}, {1, 2}};
   assert(isValidTopologicalOrder(order, edges));
 
-  std::cout << "PASSED" << std::endl;
+  std::cout << "PASSED\n";
 }
 
+}  // namespace
+
 int main() {
-  std::cout << "Running tests for Graph class..." << std::endl;
-  std::cout << "================================" << std::endl;
+  std::cout << "Running tests for Graph class...\n";
+  std::cout << "================================\n";
 
   testSimpleGraph();
   testGraphWithCycle();
@@ -241,8 +247,8 @@ int main() {
   testLongChain();
   testInvalidEdges();
 
-  std::cout << "================================" << std::endl;
-  std::cout << "All tests PASSED!" << std::endl;
+  std::cout << "================================\n";
+  std::cout << "All tests PASSED!\n";
 
   return 0;
 }
