@@ -20,6 +20,7 @@ private:
 
     void DFS(int u, const std::vector<std::vector<int>>& g, bool build_order) {
         vis[u] = true;
+        if (!build_order) comp[u] = comp_id;
         for (int v : g[u]) {
             if (!vis[v]) {
                 DFS(v, g, build_order);
@@ -65,8 +66,8 @@ public:
             int u = order.back();
             order.pop_back();
             if (!vis[u]) {
-                DFS(++comp_id, radj, false);
-                comp[u] = comp_id;
+                ++comp_id;
+                DFS(u, radj, false);
             }
         }
 
