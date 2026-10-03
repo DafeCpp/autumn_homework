@@ -137,7 +137,7 @@ def normalize(s: str, mode: str) -> str:
     return s.rstrip()
 
 
-def run_executable(exe: Path, stdin_data: str, timeout_sec: float) -> Tuple[int, str, str, float]:
+def run_executable(exe: Path, stdin_data: str, timeout_sec: float, env: Optional[Dict[str, str]] = None) -> Tuple[int, str, str, float]:
     start = time.perf_counter()
     try:
         completed = subprocess.run(
@@ -146,6 +146,7 @@ def run_executable(exe: Path, stdin_data: str, timeout_sec: float) -> Tuple[int,
             capture_output=True,
             text=True,
             timeout=timeout_sec,
+            env=env,
         )
         duration = time.perf_counter() - start
         return completed.returncode, completed.stdout, completed.stderr, duration
@@ -163,7 +164,7 @@ def find_time_tool() -> Optional[str]:
 
 
 def run_executable_with_memory(
-    exe: Path, stdin_data: str, timeout_sec: float, time_tool: str
+    exe: Path, stdin_data: str, timeout_sec: float, time_tool: str, env: Optional[Dict[str, str]] = None
 ) -> Tuple[int, str, str, float, Optional[int]]:
     # Use GNU time to measure peak RSS in KB via %M
     with tempfile.NamedTemporaryFile(prefix="runner_mem_", delete=False) as tmp:
@@ -177,6 +178,7 @@ def run_executable_with_memory(
                 capture_output=True,
                 text=True,
                 timeout=timeout_sec,
+                env=env,
             )
             duration = time.perf_counter() - start
             rc = completed.returncode
@@ -326,6 +328,11 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         help="On mismatch, write <case>.out.actual with the produced output",
     )
 
+    parser.add_argument("--example", choices=["bfs_visualization"],
+                        help="Run the standalone BFS teaching example")
+    parser.add_argument("--trace-dir", type=Path, nargs="?", const=Path(".graph-traces"),
+                        help="Record steps per case (default: .graph-traces)")
+
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     script_path = Path(__file__).resolve()
@@ -333,10 +340,18 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     tests_dir = args.tests_dir or (repo_root / "tests")
     build_dir = args.build_dir or (repo_root / "build")
 
+    if args.example and (args.tasks or args.tests_layout != "in-task"):
+        parser.error("--example cannot be combined with --tasks or --tests-layout=central")
+    if args.trace_dir and (args.mem_limit_mb is not None or args.report_memtop or args.time_limit is not None):
+        parser.error("Record traces separately from performance measurements")
     all_execs = discover_executables(build_dir)
+    if args.example:
+        example_exe = build_dir / "examples" / args.example / args.example
+        if example_exe.is_file() and os.access(example_exe, os.X_OK):
+            all_execs[args.example] = example_exe
 
     # Determine tasks to run
-    requested: List[str] = list(args.tasks)
+    requested: List[str] = [args.example] if args.example else list(args.tasks)
     if not requested:
         if args.tests_layout == "central":
             # Prefer tasks present in central tests dir; fallback to executables
@@ -386,7 +401,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             cases = list_cases_for_task_central(tests_dir, task)
             no_cases_hint = str(tests_dir / task)
         else:
-            cases = list_cases_for_task_in_task(repo_root, task)
+            cases = list_cases_for_task_in_task(repo_root / "examples" if args.example else repo_root, task)
             no_cases_hint = f"{repo_root / task}/(tests|.)"
         if not cases:
             print(f"[INFO] No test cases for {task} in '{no_cases_hint}'. Skipping.")
@@ -402,13 +417,23 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
                 print(f"{case_name}: EXEC MISSING")
                 continue
 
+            if args.save_actual:
+                expected_file.with_suffix(".out.actual").unlink(missing_ok=True)
+            run_env = os.environ.copy()
+            # Ordinary checks must not inherit an unrelated recording destination.
+            run_env.pop("GRAPH_TRACE", None)
+            if args.trace_dir:
+                trace_path = args.trace_dir.resolve() / task / (case_name + ".jsonl")
+                trace_path.parent.mkdir(parents=True, exist_ok=True)
+                trace_path.unlink(missing_ok=True)
+                run_env["GRAPH_TRACE"] = str(trace_path)
             stdin_data = read_text(input_file)
             if measure_memory:
                 rc, stdout, stderr, duration, peak_kb = run_executable_with_memory(
-                    exe, stdin_data, args.timeout, time_tool  # type: ignore[arg-type]
+                    exe, stdin_data, args.timeout, time_tool, run_env  # type: ignore[arg-type]
                 )
             else:
-                rc, stdout, stderr, duration = run_executable(exe, stdin_data, args.timeout)
+                rc, stdout, stderr, duration = run_executable(exe, stdin_data, args.timeout, run_env)
                 peak_kb = None
             duration_ms = format_ms(duration)
 
