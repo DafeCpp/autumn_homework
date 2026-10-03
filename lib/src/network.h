@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <vector>
 
@@ -60,9 +62,8 @@ public:
   }
 
   void addEdge(int u, int v, int id) {
-    if (u == v) {
-      return; // Игнорируем петли, как разрешено в условии
-    }
+    // Убрали ранний return. Алгоритм DFS сам корректно обработает петлю,
+    // а вектор edges сохранит правильную индексацию по id.
     adj[u].push_back({v, id});
     adj[v].push_back({u, id});
     edges.push_back({u, v});
