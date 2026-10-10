@@ -1,0 +1,36 @@
+{"type":"header","version":1}
+{"type":"graph","n":4,"first":1,"directed":false}
+{"type":"add_edge","id":0,"from":1,"to":2}
+{"type":"add_edge","id":1,"from":1,"to":3}
+{"type":"add_edge","id":2,"from":2,"to":4}
+{"type":"add_edge","id":3,"from":3,"to":4}
+{"type":"node","id":1,"state":"queued"}
+{"type":"value","id":1,"name":"distance","value":0}
+{"type":"step","message":"Стартовая вершина добавлена в очередь"}
+{"type":"node","id":1,"state":"active"}
+{"type":"node","id":2,"state":"queued"}
+{"type":"value","id":2,"name":"distance","value":1}
+{"type":"value","id":2,"name":"parent","value":1}
+{"type":"edge","id":0,"state":"tree"}
+{"type":"node","id":3,"state":"queued"}
+{"type":"value","id":3,"name":"distance","value":1}
+{"type":"value","id":3,"name":"parent","value":1}
+{"type":"edge","id":1,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 1"}
+{"type":"node","id":1,"state":"done"}
+{"type":"node","id":2,"state":"active"}
+{"type":"node","id":4,"state":"queued"}
+{"type":"value","id":4,"name":"distance","value":2}
+{"type":"value","id":4,"name":"parent","value":2}
+{"type":"edge","id":2,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 2"}
+{"type":"node","id":2,"state":"done"}
+{"type":"node","id":3,"state":"active"}
+{"type":"edge","id":3,"state":"non_tree"}
+{"type":"step","message":"Обработали соседей вершины 3"}
+{"type":"node","id":3,"state":"done"}
+{"type":"node","id":4,"state":"active"}
+{"type":"step","message":"Обработали соседей вершины 4"}
+{"type":"node","id":4,"state":"done"}
+{"type":"step","message":"Поиск завершён; непосещённые вершины недостижимы"}
+{"type":"end"}
