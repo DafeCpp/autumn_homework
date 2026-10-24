@@ -3,25 +3,30 @@
 #include <vector>
 
 int main() {
-  int n, m;
-  if (!(std::cin >> n >> m)) return 0;
+  try {
+    int n, m;
+    if (!(std::cin >> n >> m))
+      return 0;
 
-  Graph g(n);
-  for (int i = 0; i < m; ++i) {
-    int a, b;
-    std::cin >> a >> b;
-    g.AddEdge(a, b);
-  }
-
-  std::vector<int> order;
-  if (g.TopologicalSort(order)) {
-    for (int i = 0; i < n; ++i) {
-      std::cout << order[i];
-      if (i + 1 < n) std::cout << " ";
+    Graph g(n);
+    for (int i = 0; i < m; ++i) {
+      int a, b;
+      std::cin >> a >> b;
+      g.AddEdge(a, b);
     }
-    std::cout << "\n";
-  } else {
-    std::cout << -1 << "\n";
+
+    if (auto order = g.TopologicalSort()) {
+      for (size_t i = 0; i < order->size(); ++i) {
+        std::cout << (*order)[i] << (i + 1 < order->size() ? " " : "");
+      }
+      std::cout << "\n";
+    } else {
+      std::cout << -1 << "\n";
+    }
+  } catch (const std::exception &e) {
+
+    std::cerr << "Error: " << e.what() << "\n";
+    return 1;
   }
 
   return 0;
