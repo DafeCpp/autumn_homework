@@ -35,8 +35,8 @@ void testSimpleGraph() {
   std::cout << "Test 1: Simple graph without cycle... ";
 
   Graph g(3);
-  g.addEdge(0, 1);
-  g.addEdge(1, 2);
+  g.AddEdge(0, 1);
+  g.AddEdge(1, 2);
 
   std::vector<int> order;
   bool result = g.topologicalSort(order);
@@ -54,10 +54,10 @@ void testGraphWithCycle() {
   std::cout << "Test 2: Graph with cycle... ";
 
   Graph g(4);
-  g.addEdge(0, 1);
-  g.addEdge(1, 2);
-  g.addEdge(2, 0);
-  g.addEdge(3, 1);
+  g.AddEdge(0, 1);
+  g.AddEdge(1, 2);
+  g.AddEdge(2, 0);
+  g.AddEdge(3, 1);
 
   std::vector<int> order;
   bool result = g.topologicalSort(order);
@@ -106,7 +106,7 @@ void testSelfLoop() {
   std::cout << "Test 5: Self-loop (cycle of length 1)... ";
 
   Graph g(3);
-  g.addEdge(0, 0);
+  g.AddEdge(0, 0);
 
   std::vector<int> order;
   bool result = g.topologicalSort(order);
@@ -121,10 +121,10 @@ void testMultipleComponents() {
 
   Graph g(6);
   // Компонента 1: 0 -> 1 -> 2
-  g.addEdge(0, 1);
-  g.addEdge(1, 2);
+  g.AddEdge(0, 1);
+  g.AddEdge(1, 2);
   // Компонента 2: 3 -> 4
-  g.addEdge(3, 4);
+  g.AddEdge(3, 4);
   // Вершина 5 изолирована
 
   std::vector<int> order;
@@ -143,14 +143,14 @@ void testComplexDAG() {
   std::cout << "Test 7: Complex Graph... ";
 
   Graph g(7);
-  g.addEdge(0, 1);
-  g.addEdge(0, 2);
-  g.addEdge(1, 3);
-  g.addEdge(2, 3);
-  g.addEdge(3, 4);
-  g.addEdge(3, 5);
-  g.addEdge(4, 6);
-  g.addEdge(5, 6);
+  g.AddEdge(0, 1);
+  g.AddEdge(0, 2);
+  g.AddEdge(1, 3);
+  g.AddEdge(2, 3);
+  g.AddEdge(3, 4);
+  g.AddEdge(3, 5);
+  g.AddEdge(4, 6);
+  g.AddEdge(5, 6);
 
   std::vector<int> order;
   bool result = g.topologicalSort(order);
@@ -174,7 +174,7 @@ void testLargeCycle() {
 
   // Создаём цикл: 0 -> 1 -> 2 -> ... -> 99 -> 0
   for (int i = 0; i < n; ++i) {
-    g.addEdge(i, (i + 1) % n);
+    g.AddEdge(i, (i + 1) % n);
   }
 
   std::vector<int> order;
@@ -193,7 +193,7 @@ void testLongChain() {
 
   // Создаём цепочку: 0 -> 1 -> 2 -> ... -> 99
   for (int i = 0; i < n - 1; ++i) {
-    g.addEdge(i, i + 1);
+    g.AddEdge(i, i + 1);
   }
 
   std::vector<int> order;
@@ -213,10 +213,10 @@ void testInvalidEdges() {
   std::cout << "Test 10: Invalid edges (out of range)... ";
 
   Graph g(3);
-  g.addEdge(0, 1);
-  g.addEdge(-1, 2);
-  g.addEdge(0, 5);
-  g.addEdge(1, 2);
+  g.AddEdge(0, 1);
+  g.AddEdge(-1, 2);
+  g.AddEdge(0, 5);
+  g.AddEdge(1, 2);
 
   std::vector<int> order;
   bool result = g.topologicalSort(order);
