@@ -18,8 +18,8 @@ bool isValidTopologicalOrder(const std::vector<int>& order,
   if (order.empty()) return true;
 
   std::vector<int> position(order.size());
-  for (int i = 0; i < static_cast<int>(order.size()); ++i) {
-    position[order[i]] = i;
+  for (size_t i = 0; i < order.size(); ++i) {
+    position[order[i]] = static_cast<int>(i);
   }
 
   for (const auto& edge : edges) {
@@ -38,14 +38,13 @@ void testSimpleGraph() {
   g.AddEdge(0, 1);
   g.AddEdge(1, 2);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == 3);
+  assert(order.has_value());
+  assert(order->size() == 3);
 
   std::vector<Edge> edges = {{0, 1}, {1, 2}};
-  assert(isValidTopologicalOrder(order, edges));
+  assert(isValidTopologicalOrder(*order, edges));
 
   std::cout << "PASSED\n";
 }
@@ -59,10 +58,9 @@ void testGraphWithCycle() {
   g.AddEdge(2, 0);
   g.AddEdge(3, 1);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == false);
+  assert(!order.has_value());
 
   std::cout << "PASSED\n";
 }
@@ -72,13 +70,12 @@ void testEmptyGraph() {
 
   Graph g(5);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == 5);
+  assert(order.has_value());
+  assert(order->size() == 5);
 
-  std::vector<int> sorted_order = order;
+  std::vector<int> sorted_order = *order;
   std::sort(sorted_order.begin(), sorted_order.end());
   for (int i = 0; i < 5; ++i) {
     assert(sorted_order[i] == i);
@@ -92,12 +89,11 @@ void testSingleVertex() {
 
   Graph g(1);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == 1);
-  assert(order[0] == 0);
+  assert(order.has_value());
+  assert(order->size() == 1);
+  assert((*order)[0] == 0);
 
   std::cout << "PASSED\n";
 }
@@ -108,10 +104,9 @@ void testSelfLoop() {
   Graph g(3);
   g.AddEdge(0, 0);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == false);
+  assert(!order.has_value());
 
   std::cout << "PASSED\n";
 }
@@ -120,21 +115,17 @@ void testMultipleComponents() {
   std::cout << "Test 6: Multiple independent components... ";
 
   Graph g(6);
-  // Компонента 1: 0 -> 1 -> 2
   g.AddEdge(0, 1);
   g.AddEdge(1, 2);
-  // Компонента 2: 3 -> 4
   g.AddEdge(3, 4);
-  // Вершина 5 изолирована
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == 6);
+  assert(order.has_value());
+  assert(order->size() == 6);
 
   std::vector<Edge> edges = {{0, 1}, {1, 2}, {3, 4}};
-  assert(isValidTopologicalOrder(order, edges));
+  assert(isValidTopologicalOrder(*order, edges));
 
   std::cout << "PASSED\n";
 }
@@ -152,35 +143,31 @@ void testComplexDAG() {
   g.AddEdge(4, 6);
   g.AddEdge(5, 6);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == 7);
+  assert(order.has_value());
+  assert(order->size() == 7);
 
   std::vector<Edge> edges = {{0, 1}, {0, 2}, {1, 3}, {2, 3},
                              {3, 4}, {3, 5}, {4, 6}, {5, 6}};
-  assert(isValidTopologicalOrder(order, edges));
+  assert(isValidTopologicalOrder(*order, edges));
 
   std::cout << "PASSED\n";
 }
 
-// Тест 8: Большой цикл
 void testLargeCycle() {
   std::cout << "Test 8: Large cycle... ";
 
   int n = 100;
   Graph g(n);
 
-  // Создаём цикл: 0 -> 1 -> 2 -> ... -> 99 -> 0
   for (int i = 0; i < n; ++i) {
     g.AddEdge(i, (i + 1) % n);
   }
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == false);
+  assert(!order.has_value());
 
   std::cout << "PASSED\n";
 }
@@ -191,19 +178,17 @@ void testLongChain() {
   int n = 100;
   Graph g(n);
 
-  // Создаём цепочку: 0 -> 1 -> 2 -> ... -> 99
   for (int i = 0; i < n - 1; ++i) {
     g.AddEdge(i, i + 1);
   }
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == n);
+  assert(order.has_value());
+  assert(order->size() == static_cast<size_t>(n));
 
   for (int i = 0; i < n; ++i) {
-    assert(order[i] == n - 1 - i);
+    assert((*order)[i] == n - 1 - i);
   }
 
   std::cout << "PASSED\n";
@@ -214,18 +199,28 @@ void testInvalidEdges() {
 
   Graph g(3);
   g.AddEdge(0, 1);
-  g.AddEdge(-1, 2);
-  g.AddEdge(0, 5);
+  
+  try {
+    g.AddEdge(-1, 2);
+    assert(false && "Expected std::out_of_range for u = -1");
+  } catch (const std::out_of_range&) {
+  }
+  
+  try {
+    g.AddEdge(0, 5);
+    assert(false && "Expected std::out_of_range for v = 5");
+  } catch (const std::out_of_range&) {
+  }
+
   g.AddEdge(1, 2);
 
-  std::vector<int> order;
-  bool result = g.TopologicalSort(order);
+  auto order = g.TopologicalSort();
 
-  assert(result == true);
-  assert(order.size() == 3);
+  assert(order.has_value());
+  assert(order->size() == 3);
 
   std::vector<Edge> edges = {{0, 1}, {1, 2}};
-  assert(isValidTopologicalOrder(order, edges));
+  assert(isValidTopologicalOrder(*order, edges));
 
   std::cout << "PASSED\n";
 }
