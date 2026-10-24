@@ -10,7 +10,7 @@ int main() {
   for (int i = 0; i < m; ++i) {
     int a, b;
     std::cin >> a >> b;
-    g.addEdge(a, b);
+    g.AddEdge(a, b);
   }
 
   std::vector<int> order;
