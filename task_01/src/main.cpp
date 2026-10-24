@@ -14,7 +14,7 @@ int main() {
   }
 
   std::vector<int> order;
-  if (g.topologicalSort(order)) {
+  if (g.TopologicalSort(order)) {
     for (int i = 0; i < n; ++i) {
       std::cout << order[i];
       if (i + 1 < n) std::cout << " ";
