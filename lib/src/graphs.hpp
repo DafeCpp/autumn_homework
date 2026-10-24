@@ -18,7 +18,7 @@ public:
     adj_list_[u].push_back(v);
   }
 
-  std::optional<std::vector<int>> topologicalSort() {
+  std::optional<std::vector<int>> TopologicalSort() {
     std::vector<Color> color(num_vertices_, Color::White);
     std::vector<int> result;
     result.reserve(num_vertices_);
