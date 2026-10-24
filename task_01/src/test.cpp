@@ -39,7 +39,7 @@ void testSimpleGraph() {
   g.AddEdge(1, 2);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == 3);
@@ -60,7 +60,7 @@ void testGraphWithCycle() {
   g.AddEdge(3, 1);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == false);
 
@@ -73,7 +73,7 @@ void testEmptyGraph() {
   Graph g(5);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == 5);
@@ -93,7 +93,7 @@ void testSingleVertex() {
   Graph g(1);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == 1);
@@ -109,7 +109,7 @@ void testSelfLoop() {
   g.AddEdge(0, 0);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == false);
 
@@ -128,7 +128,7 @@ void testMultipleComponents() {
   // Вершина 5 изолирована
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == 6);
@@ -153,7 +153,7 @@ void testComplexDAG() {
   g.AddEdge(5, 6);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == 7);
@@ -178,7 +178,7 @@ void testLargeCycle() {
   }
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == false);
 
@@ -197,7 +197,7 @@ void testLongChain() {
   }
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == n);
@@ -219,7 +219,7 @@ void testInvalidEdges() {
   g.AddEdge(1, 2);
 
   std::vector<int> order;
-  bool result = g.topologicalSort(order);
+  bool result = g.TopologicalSort(order);
 
   assert(result == true);
   assert(order.size() == 3);
