@@ -2,19 +2,35 @@ name: clang-tidy-post
 
 on:
   workflow_run:
-    # The name field of the lint action
     workflows: ['clang-tidy-review']
-    types:
-      - completed
+    types: [completed]
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  pull-requests: write
+
+# Serialize attempts for the same commit to avoid concurrent duplicate reviews.
+concurrency:
+  group: clang-tidy-post-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
 
 jobs:
   build:
+    if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
-
     steps:
-      - uses: ZedThree/clang-tidy-review/post@v0.21
-        # lgtm_comment_body, max_comments, and annotations need to be set on the posting workflow in a split setup
+      # github.sha is the default-branch commit for workflow_run, never PR code.
+      - uses: actions/checkout@v4
         with:
-          # adjust options as necessary
-          annotations: false
-          max_comments: 15
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
+      - name: Publish advisory review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const post = require('./.github/scripts/clang-tidy-post.cjs');
+            await post({github, context, core});
