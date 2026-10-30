@@ -1,0 +1,148 @@
+{"type":"header","version":1}
+{"type":"graph","n":16,"first":1,"directed":false}
+{"type":"add_edge","id":0,"from":1,"to":2}
+{"type":"add_edge","id":1,"from":2,"to":3}
+{"type":"add_edge","id":2,"from":3,"to":4}
+{"type":"add_edge","id":3,"from":5,"to":6}
+{"type":"add_edge","id":4,"from":6,"to":7}
+{"type":"add_edge","id":5,"from":7,"to":8}
+{"type":"add_edge","id":6,"from":9,"to":10}
+{"type":"add_edge","id":7,"from":10,"to":11}
+{"type":"add_edge","id":8,"from":11,"to":12}
+{"type":"add_edge","id":9,"from":13,"to":14}
+{"type":"add_edge","id":10,"from":14,"to":15}
+{"type":"add_edge","id":11,"from":15,"to":16}
+{"type":"add_edge","id":12,"from":1,"to":5}
+{"type":"add_edge","id":13,"from":2,"to":6}
+{"type":"add_edge","id":14,"from":3,"to":7}
+{"type":"add_edge","id":15,"from":4,"to":8}
+{"type":"add_edge","id":16,"from":5,"to":9}
+{"type":"add_edge","id":17,"from":6,"to":10}
+{"type":"add_edge","id":18,"from":7,"to":11}
+{"type":"add_edge","id":19,"from":8,"to":12}
+{"type":"add_edge","id":20,"from":9,"to":13}
+{"type":"add_edge","id":21,"from":10,"to":14}
+{"type":"add_edge","id":22,"from":11,"to":15}
+{"type":"add_edge","id":23,"from":12,"to":16}
+{"type":"node","id":1,"state":"queued"}
+{"type":"value","id":1,"name":"distance","value":0}
+{"type":"step","message":"Стартовая вершина добавлена в очередь"}
+{"type":"node","id":1,"state":"active"}
+{"type":"node","id":2,"state":"queued"}
+{"type":"value","id":2,"name":"distance","value":1}
+{"type":"value","id":2,"name":"parent","value":1}
+{"type":"edge","id":0,"state":"tree"}
+{"type":"node","id":5,"state":"queued"}
+{"type":"value","id":5,"name":"distance","value":1}
+{"type":"value","id":5,"name":"parent","value":1}
+{"type":"edge","id":12,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 1"}
+{"type":"node","id":1,"state":"done"}
+{"type":"node","id":2,"state":"active"}
+{"type":"node","id":3,"state":"queued"}
+{"type":"value","id":3,"name":"distance","value":2}
+{"type":"value","id":3,"name":"parent","value":2}
+{"type":"edge","id":1,"state":"tree"}
+{"type":"node","id":6,"state":"queued"}
+{"type":"value","id":6,"name":"distance","value":2}
+{"type":"value","id":6,"name":"parent","value":2}
+{"type":"edge","id":13,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 2"}
+{"type":"node","id":2,"state":"done"}
+{"type":"node","id":5,"state":"active"}
+{"type":"edge","id":3,"state":"non_tree"}
+{"type":"node","id":9,"state":"queued"}
+{"type":"value","id":9,"name":"distance","value":2}
+{"type":"value","id":9,"name":"parent","value":5}
+{"type":"edge","id":16,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 5"}
+{"type":"node","id":5,"state":"done"}
+{"type":"node","id":3,"state":"active"}
+{"type":"node","id":4,"state":"queued"}
+{"type":"value","id":4,"name":"distance","value":3}
+{"type":"value","id":4,"name":"parent","value":3}
+{"type":"edge","id":2,"state":"tree"}
+{"type":"node","id":7,"state":"queued"}
+{"type":"value","id":7,"name":"distance","value":3}
+{"type":"value","id":7,"name":"parent","value":3}
+{"type":"edge","id":14,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 3"}
+{"type":"node","id":3,"state":"done"}
+{"type":"node","id":6,"state":"active"}
+{"type":"edge","id":4,"state":"non_tree"}
+{"type":"node","id":10,"state":"queued"}
+{"type":"value","id":10,"name":"distance","value":3}
+{"type":"value","id":10,"name":"parent","value":6}
+{"type":"edge","id":17,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 6"}
+{"type":"node","id":6,"state":"done"}
+{"type":"node","id":9,"state":"active"}
+{"type":"edge","id":6,"state":"non_tree"}
+{"type":"node","id":13,"state":"queued"}
+{"type":"value","id":13,"name":"distance","value":3}
+{"type":"value","id":13,"name":"parent","value":9}
+{"type":"edge","id":20,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 9"}
+{"type":"node","id":9,"state":"done"}
+{"type":"node","id":4,"state":"active"}
+{"type":"node","id":8,"state":"queued"}
+{"type":"value","id":8,"name":"distance","value":4}
+{"type":"value","id":8,"name":"parent","value":4}
+{"type":"edge","id":15,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 4"}
+{"type":"node","id":4,"state":"done"}
+{"type":"node","id":7,"state":"active"}
+{"type":"edge","id":5,"state":"non_tree"}
+{"type":"node","id":11,"state":"queued"}
+{"type":"value","id":11,"name":"distance","value":4}
+{"type":"value","id":11,"name":"parent","value":7}
+{"type":"edge","id":18,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 7"}
+{"type":"node","id":7,"state":"done"}
+{"type":"node","id":10,"state":"active"}
+{"type":"edge","id":7,"state":"non_tree"}
+{"type":"node","id":14,"state":"queued"}
+{"type":"value","id":14,"name":"distance","value":4}
+{"type":"value","id":14,"name":"parent","value":10}
+{"type":"edge","id":21,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 10"}
+{"type":"node","id":10,"state":"done"}
+{"type":"node","id":13,"state":"active"}
+{"type":"edge","id":9,"state":"non_tree"}
+{"type":"step","message":"Обработали соседей вершины 13"}
+{"type":"node","id":13,"state":"done"}
+{"type":"node","id":8,"state":"active"}
+{"type":"node","id":12,"state":"queued"}
+{"type":"value","id":12,"name":"distance","value":5}
+{"type":"value","id":12,"name":"parent","value":8}
+{"type":"edge","id":19,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 8"}
+{"type":"node","id":8,"state":"done"}
+{"type":"node","id":11,"state":"active"}
+{"type":"edge","id":8,"state":"non_tree"}
+{"type":"node","id":15,"state":"queued"}
+{"type":"value","id":15,"name":"distance","value":5}
+{"type":"value","id":15,"name":"parent","value":11}
+{"type":"edge","id":22,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 11"}
+{"type":"node","id":11,"state":"done"}
+{"type":"node","id":14,"state":"active"}
+{"type":"edge","id":10,"state":"non_tree"}
+{"type":"step","message":"Обработали соседей вершины 14"}
+{"type":"node","id":14,"state":"done"}
+{"type":"node","id":12,"state":"active"}
+{"type":"node","id":16,"state":"queued"}
+{"type":"value","id":16,"name":"distance","value":6}
+{"type":"value","id":16,"name":"parent","value":12}
+{"type":"edge","id":23,"state":"tree"}
+{"type":"step","message":"Обработали соседей вершины 12"}
+{"type":"node","id":12,"state":"done"}
+{"type":"node","id":15,"state":"active"}
+{"type":"edge","id":11,"state":"non_tree"}
+{"type":"step","message":"Обработали соседей вершины 15"}
+{"type":"node","id":15,"state":"done"}
+{"type":"node","id":16,"state":"active"}
+{"type":"step","message":"Обработали соседей вершины 16"}
+{"type":"node","id":16,"state":"done"}
+{"type":"step","message":"Поиск завершён; непосещённые вершины недостижимы"}
+{"type":"end"}

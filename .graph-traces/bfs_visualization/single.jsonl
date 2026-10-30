@@ -1,0 +1,10 @@
+{"type":"header","version":1}
+{"type":"graph","n":1,"first":1,"directed":false}
+{"type":"node","id":1,"state":"queued"}
+{"type":"value","id":1,"name":"distance","value":0}
+{"type":"step","message":"Стартовая вершина добавлена в очередь"}
+{"type":"node","id":1,"state":"active"}
+{"type":"step","message":"Обработали соседей вершины 1"}
+{"type":"node","id":1,"state":"done"}
+{"type":"step","message":"Поиск завершён; непосещённые вершины недостижимы"}
+{"type":"end"}
