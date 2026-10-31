@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.10)
 
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
@@ -26,12 +25,16 @@ include_directories(${GTEST_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC Utils)
 
 # Link runTests with what we want to test and the GTest and pthread library
-add_executable(${PROJECT_NAME}_tests ${test_source_list})
+add_executable(${PROJECT_NAME}_tests 
+    ${test_source_list}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+)
 target_link_libraries(
   ${PROJECT_NAME}_tests
   GTest::gtest_main
   Utils
 )
+target_compile_definitions(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_TESTING)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME}_tests)
