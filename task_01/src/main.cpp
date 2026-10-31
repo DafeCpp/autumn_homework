@@ -11,9 +11,12 @@ int main() {
   for (int i = 0; i < m; ++i) {
     int a, b;
     std::cin >> a >> b;
-    graf[b].push_back(a);
+    graf[a].push_back(b);
   }
-  std::vector<int> result = TopologySort(graf);
-
-  for (int i = 0; i < result.size(); ++i) std::cout << result[i] << " ";
+  auto result = TopologySort(graf);
+  if (!result) std::cout << -1 << '\n';
+  for (int v : *result) {
+    std::cout << v << ' ';
+  }
+  std::cout << '\n';
 }

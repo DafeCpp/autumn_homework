@@ -6,19 +6,20 @@
 // когда у нас можно составить порядок.
 
 bool IsOrderCorrect(const std::vector<std::vector<int>> &graf,
-                    std::vector<int> result) {
-  if (result == std::vector<int>{-1}) return false;
-  if (result.size() != graf.size()) return false;
+                    const std::optional<std::vector<int>> &result) {
+  if (!result) return false;
+  const std::vector<int> &order = *result;
+  if (order.size() != graf.size()) return false;
 
   std::vector<int> positions(graf.size(), -1);
-  for (int i = 0; i < result.size(); ++i) {
-    int v = result[i];
-    if (v < 0 || v >= graf.size()) return false;
+  for (int i = 0; i < static_cast<int>(order.size()); ++i) {
+    int v = order[i];
+    if (v < 0 || v >= static_cast<int>(graf.size())) return false;
     if (positions[v] != -1) return false;
     positions[v] = i;
   }
 
-  for (int a = 0; a < graf.size(); ++a) {
+  for (int a = 0; a < static_cast<int>(graf.size()); ++a) {
     for (int b : graf[a]) {
       if (positions[b] >= positions[a]) return false;
     }
@@ -31,12 +32,12 @@ TEST(Test, Simple) {
   EXPECT_TRUE(IsOrderCorrect(graf, TopologySort(graf)));
 
   std::vector<std::vector<int>> graf2 = {{1}, {2}, {0}, {1}};
-  ASSERT_EQ(TopologySort(graf2), std::vector<int>{-1});
+  ASSERT_EQ(TopologySort(graf2), std::nullopt);
 }
 
 TEST(Test, WithLoop) {
   std::vector<std::vector<int>> graf = {{1}, {2}, {1}};
-  ASSERT_EQ(TopologySort(graf), std::vector<int>{-1});
+  ASSERT_EQ(TopologySort(graf), std::nullopt);
 }
 
 TEST(Test, SingleVertex) {
@@ -66,10 +67,10 @@ TEST(Test, TwoIndependentChains) {
 
 TEST(Test, SelfLoop) {
   std::vector<std::vector<int>> graf = {{0}};
-  ASSERT_EQ(TopologySort(graf), std::vector<int>{-1});
+  ASSERT_EQ(TopologySort(graf), std::nullopt);
 }
 
 TEST(Test, ManyComponentsWithCycle) {
   std::vector<std::vector<int>> graf = {{1}, {2}, {}, {4}, {5}, {3}, {}};
-  ASSERT_EQ(TopologySort(graf), std::vector<int>{-1});
+  ASSERT_EQ(TopologySort(graf), std::nullopt);
 }
