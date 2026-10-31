@@ -147,7 +147,7 @@ void PrintResult(const std::vector<std::vector<long long>>& dist,
     std::cout << '\n';
   }
 }
-
+#ifndef TASK_04_TESTING
 int main() {
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(nullptr);
@@ -166,3 +166,4 @@ int main() {
 
   return 0;
 }
+#endif
