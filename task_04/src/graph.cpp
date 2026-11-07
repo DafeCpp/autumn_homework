@@ -1,44 +1,20 @@
 #include <cmath>
 #include <graph.hpp>
 #include <optional>
+#include <queue>
 
-/*
-std::optional<std::vector<double>> Graph::BellmanFord(int start) {
-  // std::vector<double> distances_ford(graph.size(), INFINITY);
-  // std::vector<std::vector<double>> d(graph.size(),
-  // std::vector<double>(INFINITY));
-  std::vector<double> distances(graph.size(), INFINITY);
-  // d[0][start] = 0;
-  distances[start] = 0;
-
-  for (int k = 1; k < graph.size(); ++k) {
-    bool changed = false;
-
-    for (auto [u, v, weight] : edges) {
-      if (distances[u] == INFINITY) continue;
-      if (distances[u] + weight < distances[v]) {
-        distances[v] = distances[u] + weight;
-        changed = true;
-      }
-    }
-    if (!changed) break;
+void Graph::DistancesReconstruction(const int& start,
+                                    std::vector<double>& distances) {
+  for (int i = 0; i < distances.size(); ++i) {
+    if (distances[i] != INFINITY)
+      distances[i] += (potentials[i] - potentials[start]);
   }
-
-  // Проверка отрицательного цикла
-  for (auto [u, v, weight] : edges) {
-    if (distances[u] != INFINITY && distances[u] + weight < distances[v]) {
-      return std::nullopt;
-    }
-  }
-
-  return distances;
-};
-*/
+}
 
 std::optional<std::vector<double>> Graph::BellmanFord() {
-  std::vector<double> distances(graph.size(), 0);
+  std::vector<double> distances(n, 0);
 
-  for (int k = 1; k < graph.size(); ++k) {
+  for (int k = 1; k < n; ++k) {
     bool changed = false;
 
     for (auto [u, v, weight] : edges) {
@@ -61,18 +37,46 @@ std::optional<std::vector<double>> Graph::BellmanFord() {
 };
 
 std::vector<double> Graph::Dijkstra(int start) {
-  std::vector<double> distances(reweighted_graph.size(), INFINITY);
+  std::vector<double> distances(n, INFINITY);
+  distances[start] = 0;
+
+  std::priority_queue<std::pair<double, int>,
+                      std::vector<std::pair<double, int>>,
+                      std::greater<std::pair<double, int>>>
+      heap;
+
+  heap.push({0, start});
+  while (!heap.empty()) {
+    auto [dist_u, u] = heap.top();
+    heap.pop();
+
+    if (distances[u] != dist_u) continue;
+    for (auto [v, weight] : reweighted_graph[u]) {
+      if (dist_u + weight < distances[v]) {
+        distances[v] = dist_u + weight;
+        heap.push({distances[v], v});
+      }
+    }
+  }
+
+  DistancesReconstruction(start, distances);
+  return distances;
 }
 
-void Graph::Reweigh(const std::vector<double>& distances) {
+void Graph::Reweigh() {
   for (auto [u, v, weight] : edges) {
-    double new_weight = weight + distances[v] - distances[u];
+    double new_weight = weight + potentials[u] - potentials[v];
     reweighted_graph[u].push_back({v, new_weight});
   }
 }
 
-bool Graph::Johnson() {
-  std::optional<std::vector<double>> distances = BellmanFord();
-  if (!distances) return false;
-  Reweigh(*distances);
+std::optional<std::vector<std::vector<double>>> Graph::Johnson() {
+  std::optional<std::vector<double>> potentials_ = BellmanFord();
+  if (!potentials_) return std::nullopt;
+  potentials = *potentials_;
+  Reweigh();
+
+  std::vector<std::vector<double>> result(n);
+  for (int u = 0; u < n; ++u) result[u] = Dijkstra(u);
+  return result;
 }

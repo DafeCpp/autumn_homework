@@ -11,19 +11,25 @@ struct Edge {
 };
 
 struct Graph {
-  Graph() {
-    // d.assign(graph.size(), std::vector<double>(INFINITY));
-    // distances_ford.assign(graph.size(), INFINITY);
+  Graph(int n_, std::vector<Edge> graph)
+      : n(n_),
+        edges(std::move(graph)),
+        potentials(n_, 0.0),
+        reweighted_graph(n_) {
+    distances = Johnson();
   }
+  std::optional<std::vector<std::vector<double>>> distances;
 
  private:
-  // std::vector<std::vector<double>> d;
+  int n;
   std::vector<Edge> edges;
-  std::vector<std::vector<std::pair<int, double>>> graph;
-  // std::vector<double> distances_ford;
+  std::vector<double> potentials;
+  std::vector<std::vector<std::pair<int, double>>> reweighted_graph;
+
   std::optional<std::vector<double>> BellmanFord();
   std::vector<double> Dijkstra(int start);
-  void Reweigh(const std::vector<double>& distances);
-  bool Johnson();
-  std::vector<std::vector<std::pair<int, double>>> reweighted_graph;
+  void Reweigh();
+  void DistancesReconstruction(const int &start,
+                               std::vector<double> &distances);
+  std::optional<std::vector<std::vector<double>>> Johnson();
 };
