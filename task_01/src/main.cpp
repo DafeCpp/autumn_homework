@@ -1,3 +1,9 @@
-#include <iostream>
+#include "solution.hpp"
 
-int main() { return 0; }
+int main() {
+    Graph graph;
+    std::vector<int> res = get_requirements(graph);
+    for (int v : res) {
+        std::cout << v << " ";
+    }
+}

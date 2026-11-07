@@ -1,3 +1,6 @@
-#include <iostream>
+#include "solution.hpp"
 
-int main() { return 0; }
+int main() {
+    Graph graph;
+    std::cout << get_critical(graph) << std::endl;
+}
