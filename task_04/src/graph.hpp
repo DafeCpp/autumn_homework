@@ -4,14 +4,14 @@
 #include <optional>
 #include <vector>
 
-struct Flow {
+struct Edge {
   int from;
   int to;
   double weight;
 };
 
 struct Graph {
-  Graph(int n_, std::vector<Flow> graph)
+  Graph(int n_, std::vector<Edge> graph)
       : n(n_),
         edges(std::move(graph)),
         potentials(n_, 0.0),
@@ -22,7 +22,7 @@ struct Graph {
 
  private:
   int n;
-  std::vector<Flow> edges;
+  std::vector<Edge> edges;
   std::vector<double> potentials;
   std::vector<std::vector<std::pair<int, double>>> reweighted_graph;
 

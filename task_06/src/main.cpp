@@ -6,8 +6,8 @@ int main() {
   int n, m;
   std::cin >> n >> m;
 
-  std::vector<std::unordered_map<int, Flow>> graph(
-      n, std::unordered_map<int, Flow>());
+  std::vector<std::unordered_map<int, Edge>> graph(
+      n, std::unordered_map<int, Edge>());
   for (int i = 0; i < m; ++i) {
     int u, v, c;
     std::cin >> u >> v >> c;

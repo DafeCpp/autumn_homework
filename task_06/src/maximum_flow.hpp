@@ -3,13 +3,13 @@
 #include <unordered_map>
 #include <vector>
 
-struct Flow {
+struct Edge {
   int flow;
   int capacity;
 };
 
 struct MaxFlow {
-  MaxFlow(std::vector<std::unordered_map<int, Flow>> graph) : graph(graph) {
+  MaxFlow(std::vector<std::unordered_map<int, Edge>> graph) : graph(graph) {
     n = graph.size();
     visited.assign(n, false);
     FordFulkerson();
@@ -18,7 +18,7 @@ struct MaxFlow {
 
  private:
   int source{-1}, drain{-1};
-  std::vector<std::unordered_map<int, Flow>> graph;
+  std::vector<std::unordered_map<int, Edge>> graph;
   int n;
   int DFS(int u, int addition);
   void FindSourceAndDrain();

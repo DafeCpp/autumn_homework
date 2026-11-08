@@ -7,7 +7,7 @@ int main() {
   int n, m;
   std::cin >> n >> m;
 
-  std::vector<Flow> edges(m);
+  std::vector<Edge> edges(m);
   for (int i = 0; i < m; ++i) {
     int u, v;
     double w;
