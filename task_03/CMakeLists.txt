@@ -26,7 +26,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC Utils)
 
 # Link runTests with what we want to test and the GTest and pthread library
-add_executable(${PROJECT_NAME}_tests ${test_source_list})
+add_executable(${PROJECT_NAME}_tests ${test_source_list} ${CMAKE_CURRENT_SOURCE_DIR}/src/get_critical_elements.cpp)
 target_link_libraries(
   ${PROJECT_NAME}_tests
   GTest::gtest_main
