@@ -9,6 +9,7 @@ void ExpectDistances(
     const std::optional<std::vector<std::vector<double>>>& expected) {
   if (!expected) {
     EXPECT_TRUE(!dist);
+    return;
   }
   for (int i = 0; i < (*expected).size(); ++i) {
     for (int j = 0; j < (*expected)[i].size(); ++j) {
@@ -102,7 +103,7 @@ TEST(JohnsonGraph, ZeroWeightCycle) {
   std::vector<Edge> edges = {{0, 1, 1}, {1, 2, -1}, {2, 0, 0}};
   Graph g(3, edges);
   ExpectDistances(g.distances, std::vector<std::vector<double>>{
-                                   {0, 1, 0}, {0, 0, -1}, {0, 1, 0}});
+                                   {0, 1, 0}, {-1, 0, -1}, {0, 1, 0}});
 }
 
 TEST(JohnsonGraph, PositiveSelfLoop) {
