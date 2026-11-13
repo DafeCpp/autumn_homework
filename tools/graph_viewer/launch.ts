@@ -39,8 +39,8 @@ async function main() {
     throw Error('Укажите одну задачу: ./visualize task_03');
   }
   const task = values.task || positionals[0];
-  if (task && !['task_01', 'task_02', 'task_03'].includes(task)) {
-    throw Error('Просмотрщик поддерживает task_01, task_02 или task_03. Без имени задачи запускается BFS.');
+  if (task && !['task_01', 'task_02', 'task_03', 'task_04'].includes(task)) {
+    throw Error('Просмотрщик поддерживает task_01, task_02, task_03 или task_04. Без имени задачи запускается BFS.');
   }
   for (const command of ['cmake', 'python3']) {
     const result = spawnSync(command, ['--version'], {stdio: 'ignore'});

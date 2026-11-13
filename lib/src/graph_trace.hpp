@@ -43,7 +43,7 @@ class Recorder {
   // Сохраняет у вершины id целочисленную переменную name со значением value,
   // например Value(v, "distance", distance[v]). Повторный вызов обновляет
   // значение. В следующем кадре оно появится в таблице состояния вершин.
-  void Value(int id, std::string_view name, int value);
+  void Value(int id, std::string_view name, long long value);
 
   // Завершает один шаг алгоритма с пояснением message. Просмотрщик покажет
   // кадр со всеми изменениями Node, Edge и Value после предыдущего Step.

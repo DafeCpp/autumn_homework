@@ -50,7 +50,7 @@ void Recorder::Node(int id, std::string_view state) {
 void Recorder::Edge(int id, std::string_view state) {
   State("edge", id, state);
 }
-void Recorder::Value(int id, std::string_view name, int value) {
+void Recorder::Value(int id, std::string_view name, long long value) {
   if (!IsEnabled()) return;
   Write("{\"type\":\"value\",\"id\":" + std::to_string(id) + ",\"name\":" +
         Quote(name) + ",\"value\":" + std::to_string(value) + "}");

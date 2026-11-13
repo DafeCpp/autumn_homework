@@ -10,9 +10,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, '../..');
 const STATIC = join(HERE, 'static');
 const MAX_FILE = 9 * 1024 * 1024;
-export interface Edge { id: number; from: number; to: number }
+export interface Edge { id: number; from: number; to: number; weight?: number }
 export interface Graph { n: number; first: number; directed: boolean; edges: Edge[] }
-interface Task { folder: string; directed: boolean; first: number; label: string }
+interface Task { folder: string; directed: boolean; first: number; label: string; weighted?: boolean }
 interface Case { id: string; task: string; name: string; label: string }
 export type Event =
   | {type: 'node' | 'edge'; id: number; state: string}
@@ -22,6 +22,7 @@ const TASKS: Record<string, Task> = {
   bfs_visualization: {folder: 'examples/bfs_visualization', directed: false, first: 1, label: 'BFS: расстояния от вершины 1'},
   task_01: {folder: 'task_01', directed: true, first: 0, label: 'Зависимости: a → b означает «a зависит от b»'},
   task_02: {folder: 'task_02', directed: true, first: 1, label: 'Односторонние дороги'},
+  task_04: {folder: 'task_04', directed: true, first: 0, weighted: true, label: 'Джонсон: кратчайшие пути'},
   task_03: {folder: 'task_03', directed: false, first: 1, label: 'Уязвимые места сети'},
 };
 function contained(root: string, path: string) {
@@ -62,19 +63,26 @@ export async function catalog(repo = REPO): Promise<Case[]> {
   }
   return result;
 }
-export function parseGraph(text: string, directed: boolean, first: number): Graph {
+export function parseGraph(text: string, directed: boolean, first: number, weighted = false): Graph {
   const tokens = text.trim().split(/\s+/);
   if (tokens.length < 2 || tokens.some(x => !/^-?\d+$/.test(x))) throw Error('Ожидаются целые числа: n m и пары вершин');
   const values = tokens.map(Number), [n, m] = values;
   if (!Number.isSafeInteger(n) || !Number.isSafeInteger(m) || n < 1 || n > 500 || m < 0 || m > 2000) {
     throw Error('Для просмотра выберите небольшой тест: до 500 вершин и 2000 рёбер');
   }
-  if (values.length !== 2+2*m) throw Error('Число рёбер не соответствует m');
+  const stride = weighted ? 3 : 2;
+  if (values.length !== 2+stride*m) throw Error('Число рёбер не соответствует m');
   const edges: Edge[] = [];
   for (let id = 0; id < m; id++) {
-    const from = values[2+2*id], to = values[3+2*id];
+    const from = values[2+stride*id], to = values[3+stride*id];
     if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from < first || from >= first+n || to < first || to >= first+n) throw Error('Номер вершины вне диапазона');
-    edges.push({id, from, to});
+    if (weighted) {
+      const weight = values[4+stride*id];
+      if (!Number.isSafeInteger(weight)) throw Error('Вес вне точного диапазона чисел');
+      edges.push({id, from, to, weight});
+    } else {
+      edges.push({id, from, to});
+    }
   }
   return {n, first, directed, edges};
 }
@@ -126,7 +134,7 @@ export function parseTrace(text: string, graph: Graph): {events: Event[]; warnin
     }
     last = String(event.type);
   }
-  if (!graphSeen || JSON.stringify(recorded) !== JSON.stringify(graph.edges)) throw Error('Запись графа неполная или относится к другому тесту');
+  if (!graphSeen || JSON.stringify(recorded) !== JSON.stringify(graph.edges.map(({id, from, to}) => ({id, from, to})))) throw Error('Запись графа неполная или относится к другому тесту');
   if (last !== 'end') warnings.push(last === 'truncated' ? 'Запись ограничена по размеру' : 'Запись ещё идёт или выполнение прервано');
   return {events, warnings};
 }
@@ -135,7 +143,7 @@ export async function caseData(id: string, repo = REPO, traces = join(repo, '.gr
   if (!test) throw Error('Неизвестный тест');
   const config = TASKS[test.task], path = join(repo, id);
   const input = await readBounded(path, repo);
-  const graph = parseGraph(input, config.directed, config.first);
+  const graph = parseGraph(input, config.directed, config.first, config.weighted);
   async function optional(file: string) {
     try { return await readBounded(file, repo); } catch(error) { if(missing(error)) return ''; throw error; }
   }

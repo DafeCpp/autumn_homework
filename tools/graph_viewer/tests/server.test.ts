@@ -61,3 +61,18 @@ test('read-only HTTP API confines files and serves browser assets', async () => 
     assert.match(response.headers.get('content-security-policy')||'',/default-src 'self'/);
   } finally { if(server.listening) await new Promise<void>(done=>server.close(()=>done())); await rm(root,{recursive:true,force:true}); }
 });
+
+test('weighted graphs preserve weights and accept matching graph traces', () => {
+  const graph = parseGraph('4 3\n0 1 -2\n0 1 7\n1 2 3000000000\n', true, 0, true);
+  assert.deepEqual(graph.edges.map(e => e.weight), [-2, 7, 3000000000]);
+  const events = [
+    {type: 'header', version: 1},
+    {type: 'graph', n: 4, first: 0, directed: true},
+    ...graph.edges.map(({id, from, to}) => ({type: 'add_edge', id, from, to})),
+    {type: 'value', id: 2, name: 'from_0', value: 2999999998},
+    {type: 'step', message: 'Расстояния'},
+    {type: 'end'},
+  ];
+  assert.deepEqual(parseTrace(jsonl(events), graph).warnings, []);
+  assert.throws(() => parseGraph('2 1\n0 1\n', true, 0, true), /Число/);
+});

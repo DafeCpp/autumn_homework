@@ -114,7 +114,11 @@ function drawGraph(view, tree, state, answer) {
     const path = element('path',{d,class:`edge ${role} ${state.edges.get(e.id)||''} ${answer.edges.has(e.id)?'answer':''} ${hidden?'removed':''}`});
     if (data.graph.directed) path.setAttribute('marker-end',`url(#arrow-${svg.id})`);
     const hit = element('path',{d,class:'edge-hit','data-edge':e.id});
-    hit.append(element('title',{},`Ребро ${e.id}: ${e.from} — ${e.to}`));svg.append(path,hit);
+    hit.append(element('title',{},`Ребро ${e.id}: ${e.from} → ${e.to}${e.weight === undefined ? '' : ', вес ' + e.weight}`));svg.append(path,hit);
+    if (e.weight !== undefined) {
+      const middle = path.getPointAtLength(path.getTotalLength() / 2);
+      svg.append(element('text', {x:middle.x, y:middle.y-7, 'text-anchor':'middle', 'pointer-events':'none'}, e.weight));
+    }
   }
   for (const [v, [x,y]] of positions) {
     const g = element('g',{transform:`translate(${x} ${y})`,class:`node ${state.nodes.get(v)||''} ${answer.nodes.has(v)?'answer':''} ${removedNodes.has(v)?'removed':''}`,'data-node':v});
