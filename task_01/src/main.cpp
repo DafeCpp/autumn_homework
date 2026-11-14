@@ -1,12 +1,12 @@
 #include <graphs.hpp>
+
 #include <iostream>
 #include <vector>
 
 int main() {
   try {
     int n, m;
-    if (!(std::cin >> n >> m))
-      return 0;
+    if (!(std::cin >> n >> m)) return 0;
 
     Graph g(n);
     for (int i = 0; i < m; ++i) {
@@ -23,8 +23,7 @@ int main() {
     } else {
       std::cout << -1 << "\n";
     }
-  } catch (const std::exception &e) {
-
+  } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";
     return 1;
   }
