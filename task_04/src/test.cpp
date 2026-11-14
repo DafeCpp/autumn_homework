@@ -1,26 +1,37 @@
-#include "johnson.h"
-
 #include <gtest/gtest.h>
 
 #include <tuple>
 #include <vector>
 
+#include "johnson.hpp"
+
 namespace {
 
-Graph CreateGraph(
-    int n, const std::vector<std::tuple<int, int, long long>>& edges) {
-  Graph g;
-  g.n = n;
-  g.adj.resize(n + 1);
+constexpr long long kInf = 1e18;
 
+Graph CreateGraph(int n,
+                  const std::vector<std::tuple<int, int, long long>>& edges) {
+  Graph g(n);
   for (const auto& [u, v, w] : edges) {
-    g.adj[u].push_back({v, w});
+    g.AddEdge(u, v, w);
   }
-
   return g;
 }
 
-}  // namespace
+TEST(JohnsonTest, SimpleGraph) {
+  Graph g = CreateGraph(4, {{1, 2, 2},
+                            {1, 3, 5},
+                            {3, 2, -4},
+                            {2, 4, 3}});
+
+  bool has_negative_cycle = false;
+  const auto dist = Johnson(g, has_negative_cycle);
+
+  ASSERT_FALSE(has_negative_cycle);
+  EXPECT_EQ(dist[1][2], 2);
+  EXPECT_EQ(dist[1][3], 5);
+  EXPECT_EQ(dist[1][4], 5);
+}
 
 TEST(JohnsonTest, NegativeEdgesNoCycle) {
   Graph g = CreateGraph(4, {{1, 2, 2},
@@ -156,3 +167,5 @@ TEST(JohnsonTest, NoEdges) {
     }
   }
 }
+
+}  // namespace
