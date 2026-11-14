@@ -37,21 +37,20 @@ class KosarajuSolver {
   }
 
   int solve() {
-    // Pass 1: Iterative DFS for topological order
     std::fill(vis.begin(), vis.end(), false);
     order.clear();
-    
+
     for (int i = 1; i <= n; ++i) {
       if (!vis[i]) {
         std::vector<std::pair<int, size_t>> st;
         st.push_back({i, 0});
         vis[i] = true;
-        
+
         while (!st.empty()) {
           auto& top = st.back();
           int u = top.first;
           size_t& idx = top.second;
-          
+
           if (idx < adj[u].size()) {
             int v = adj[u][idx++];
             if (!vis[v]) {
@@ -66,7 +65,6 @@ class KosarajuSolver {
       }
     }
 
-    // Pass 2: Iterative DFS on reversed graph
     std::fill(vis.begin(), vis.end(), false);
     std::fill(comp.begin(), comp.end(), 0);
     comp_id = 0;
@@ -79,7 +77,7 @@ class KosarajuSolver {
         st.push_back(u);
         vis[u] = true;
         comp[u] = comp_id;
-        
+
         while (!st.empty()) {
           int curr = st.back();
           st.pop_back();
@@ -98,7 +96,7 @@ class KosarajuSolver {
 
     std::vector<bool> is_src(comp_id + 1, true);
     std::vector<bool> is_snk(comp_id + 1, true);
-    
+
     for (int u = 1; u <= n; ++u) {
       for (int v : adj[u]) {
         if (comp[u] != comp[v]) {
