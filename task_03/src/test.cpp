@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "network.h"
+#include "network.hpp"
 
 TEST(NetworkAnalyzerTest, ExampleFromPrompt) {
   NetworkAnalyzer analyzer(2);
@@ -80,17 +80,15 @@ TEST(NetworkAnalyzerTest, ComplexGraphLexicographicalOrder) {
 
 TEST(NetworkAnalyzerTest, BridgeReverseOrderNormalization) {
   NetworkAnalyzer analyzer(3);
-  analyzer.addEdge(3, 1, 0); // Ребро в обратном порядке
+  analyzer.addEdge(3, 1, 0);
   NetworkResult result = analyzer.solve();
 
   ASSERT_EQ(result.bridges.size(), 1u);
-  // Проверка, что концы нормализованы (меньший номер первым)
   EXPECT_EQ(result.bridges[0], std::make_pair(1, 3));
 }
 
 TEST(NetworkAnalyzerTest, StarGraphArticulationPoint) {
   NetworkAnalyzer analyzer(4);
-  // Звезда: корень 1 имеет 3 детей. Корень DFS должен стать точкой сочленения.
   analyzer.addEdge(1, 2, 0);
   analyzer.addEdge(1, 3, 1);
   analyzer.addEdge(1, 4, 2);
@@ -98,6 +96,6 @@ TEST(NetworkAnalyzerTest, StarGraphArticulationPoint) {
 
   ASSERT_EQ(result.cut_vertices.size(), 1u);
   EXPECT_EQ(result.cut_vertices[0], 1);
-  
+
   ASSERT_EQ(result.bridges.size(), 3u);
 }
