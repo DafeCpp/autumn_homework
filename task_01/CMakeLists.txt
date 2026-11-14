@@ -8,16 +8,23 @@ project(${PROJECT_NAME} C CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB_RECURSE source_list "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
-file(GLOB test_source_list "${CMAKE_CURRENT_SOURCE_DIR}/src/*test.cpp")
+file(GLOB_RECURSE source_list CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+file(GLOB test_source_list CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*test.cpp")
 
 list(REMOVE_ITEM source_list ${test_source_list})
 
 include_directories(${PROJECT_NAME} PUBLIC src)
 
+
+set(main_cpp "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+set(lib_sources ${source_list})
+list(REMOVE_ITEM lib_sources "${main_cpp}")
+
 add_executable(${PROJECT_NAME} ${source_list})
 
-# Locate GTest
 enable_testing()
 find_package(GTest REQUIRED)
 
@@ -25,8 +32,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Utils)
 
-# Link runTests with what we want to test and the GTest and pthread library
-add_executable(${PROJECT_NAME}_tests ${test_source_list})
+add_executable(${PROJECT_NAME}_tests ${test_source_list} ${lib_sources})
 target_link_libraries(
   ${PROJECT_NAME}_tests
   GTest::gtest_main
