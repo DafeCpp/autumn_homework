@@ -64,3 +64,6 @@ build/*
 __pycache__/
 node_modules/
 .graph-build/
+
+# Hand-written project entry point
+!/Makefile
