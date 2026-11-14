@@ -1,5 +1,6 @@
 #include "graphs.hpp"
 
+#include <algorithm>
 #include <stack>
 #include <stdexcept>
 #include <utility>
@@ -52,5 +53,8 @@ std::optional<std::vector<int>> Graph::TopologicalSort() const {
       }
     }
   }
+
+  std::reverse(result.begin(), result.end());
+
   return result;
 }
