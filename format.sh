@@ -1,27 +1,27 @@
 #!/bin/bash
-
-# Check if clang-format is installed
-if ! command -v clang-format &> /dev/null; then
-    echo "Error: clang-format is not installed. Please install it first."
-    echo "On Ubuntu/Debian: sudo apt-get install clang-format"
-    echo "On macOS: brew install clang-format"
-    exit 1
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+mode=${1:-all}
+case "$mode" in all|changed|check) ;; *) echo "Usage: $0 [all|changed|check]" >&2; exit 2 ;; esac
+formatter=${CLANG_FORMAT:-clang-format}
+command -v "$formatter" >/dev/null || { echo "Missing formatter: $formatter" >&2; exit 1; }
+files=$(mktemp)
+trap 'rm -f "$files"' EXIT
+if [ "$mode" = changed ]; then
+    git diff HEAD --name-only --diff-filter=ACMR -z > "$files"
+    git ls-files --others --exclude-standard -z >> "$files"
+else
+    git ls-files --cached --others --exclude-standard -z > "$files"
 fi
-
-# Find all C++ files in the project
-echo "Searching for C++ files..."
-FILES=$(find . -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -not -path "./build/*" -not -path "./.git/*" -not -path "./_deps/*")
-
-if [ -z "$FILES" ]; then
-    echo "No C++ files found to format."
-    exit 0
-fi
-
-# Format each file
-echo "Formatting files..."
-for file in $FILES; do
-    echo "Formatting $file"
-    clang-format -i -style=file "$file"
-done
-
-echo "Formatting complete!"
+status=0
+while IFS= read -r -d '' file; do
+    case "$file" in *.cpp|*.h|*.hpp) ;; *) continue ;; esac
+    [ -f "$file" ] || continue
+    echo "$file"
+    if [ "$mode" = check ]; then
+        "$formatter" --dry-run --Werror -style=file "$file" || status=1
+    else
+        "$formatter" -i -style=file "$file" || status=1
+    fi
+done < "$files"
+exit "$status"
