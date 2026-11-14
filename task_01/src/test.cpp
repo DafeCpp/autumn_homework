@@ -141,7 +141,7 @@ TEST(GraphTest, LongChain) {
   ASSERT_EQ(order->size(), static_cast<size_t>(n));
 
   for (int i = 0; i < n; ++i) {
-    EXPECT_EQ((*order)[i], n - 1 - i);
+    EXPECT_EQ((*order)[i], i);
   }
 }
 

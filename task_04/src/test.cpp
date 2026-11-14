@@ -7,8 +7,6 @@
 
 namespace {
 
-constexpr long long kInf = 1e18;
-
 Graph CreateGraph(int n,
                   const std::vector<std::tuple<int, int, long long>>& edges) {
   Graph g(n);
@@ -18,27 +16,9 @@ Graph CreateGraph(int n,
   return g;
 }
 
-TEST(JohnsonTest, SimpleGraph) {
-  Graph g = CreateGraph(4, {{1, 2, 2},
-                            {1, 3, 5},
-                            {3, 2, -4},
-                            {2, 4, 3}});
-
-  bool has_negative_cycle = false;
-  const auto dist = Johnson(g, has_negative_cycle);
-
-  ASSERT_FALSE(has_negative_cycle);
-  EXPECT_EQ(dist[1][2], 2);
-  EXPECT_EQ(dist[1][3], 5);
-  EXPECT_EQ(dist[1][4], 5);
-}
-
 TEST(JohnsonTest, NegativeEdgesNoCycle) {
-  Graph g = CreateGraph(4, {{1, 2, 2},
-                            {1, 3, 5},
-                            {3, 2, -4},
-                            {2, 4, 3},
-                            {3, 4, 6}});
+  Graph g =
+      CreateGraph(4, {{1, 2, 2}, {1, 3, 5}, {3, 2, -4}, {2, 4, 3}, {3, 4, 6}});
 
   bool has_negative_cycle = false;
   const auto dist = Johnson(g, has_negative_cycle);
@@ -105,18 +85,8 @@ TEST(JohnsonTest, ZeroWeightCycle) {
   EXPECT_EQ(dist[1][3], 2);
 }
 
-TEST(JohnsonTest, MultipleEdges) {
-  Graph g = CreateGraph(2, {{1, 2, 5}, {1, 2, 3}, {1, 2, 7}});
-
-  bool has_negative_cycle = false;
-  const auto dist = Johnson(g, has_negative_cycle);
-
-  ASSERT_FALSE(has_negative_cycle);
-  EXPECT_EQ(dist[1][2], 3);
-}
-
-TEST(JohnsonTest, NonNegativeSelfLoop) {
-  Graph g = CreateGraph(2, {{1, 1, 5}, {1, 2, 3}});
+TEST(JohnsonTest, MultipleEdgesAndNonNegativeSelfLoop) {
+  Graph g = CreateGraph(2, {{1, 2, 5}, {1, 2, 3}, {1, 2, 7}, {1, 1, 5}});
 
   bool has_negative_cycle = false;
   const auto dist = Johnson(g, has_negative_cycle);

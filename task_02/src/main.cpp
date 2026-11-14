@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 
-#include "kosaraju.h"
+#include "kosaraju.hpp"
 
 int main() {
   int n, m;
