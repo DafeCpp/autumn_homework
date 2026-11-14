@@ -13,7 +13,7 @@ private:
   int n;
   std::vector<std::vector<std::pair<int, int>>> adj;
   std::vector<std::pair<int, int>> edges;
-  int timer_counter;
+  int timer_counter = 0;
   std::vector<int> tin;
   std::vector<int> low;
   std::vector<bool> isCut;
@@ -54,7 +54,7 @@ private:
   }
 
 public:
-  explicit NetworkAnalyzer(int n_vertices) : n(n_vertices), timer_counter(0) {
+  explicit NetworkAnalyzer(int n_vertices) : n(n_vertices) {
     adj.resize(n + 1);
     tin.assign(n + 1, -1);
     low.assign(n + 1, -1);
@@ -62,15 +62,19 @@ public:
   }
 
   void addEdge(int u, int v, int id) {
-    // Убрали ранний return. Алгоритм DFS сам корректно обработает петлю,
-    // а вектор edges сохранит правильную индексацию по id.
     adj[u].push_back({v, id});
     adj[v].push_back({u, id});
     edges.push_back({u, v});
   }
 
   NetworkResult solve() {
+    // Сброс состояния для корректной работы при повторных вызовах
+    timer_counter = 0;
+    std::fill(tin.begin(), tin.end(), -1);
+    std::fill(low.begin(), low.end(), -1);
+    std::fill(isCut.begin(), isCut.end(), false);
     bridges.clear();
+
     for (int i = 1; i <= n; ++i) {
       if (tin[i] == -1) {
         dfs(i, -1);
