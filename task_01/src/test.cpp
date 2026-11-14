@@ -1,9 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <cassert>
 #include <graphs.hpp>
-#include <iostream>
 #include <vector>
 
 namespace {
@@ -13,7 +11,7 @@ struct Edge {
   int to;
 };
 
-bool isValidTopologicalOrder(const std::vector<int>& order,
+bool IsValidTopologicalOrder(const std::vector<int>& order,
                              const std::vector<Edge>& edges) {
   if (order.empty()) return true;
 
@@ -23,7 +21,8 @@ bool isValidTopologicalOrder(const std::vector<int>& order,
   }
 
   for (const auto& edge : edges) {
-    if (position[edge.from] < position[edge.to]) {
+    // Исправлено: если источник идёт ПОСЛЕ назначения, порядок невалиден
+    if (position[edge.from] > position[edge.to]) {
       return false;
     }
   }
@@ -31,27 +30,20 @@ bool isValidTopologicalOrder(const std::vector<int>& order,
   return true;
 }
 
-void testSimpleGraph() {
-  std::cout << "Test 1: Simple graph without cycle... ";
-
+TEST(GraphTest, SimpleGraph) {
   Graph g(3);
   g.AddEdge(0, 1);
   g.AddEdge(1, 2);
 
   auto order = g.TopologicalSort();
-
-  assert(order.has_value());
-  assert(order->size() == 3);
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), 3u);
 
   std::vector<Edge> edges = {{0, 1}, {1, 2}};
-  assert(isValidTopologicalOrder(*order, edges));
-
-  std::cout << "PASSED\n";
+  EXPECT_TRUE(IsValidTopologicalOrder(*order, edges));
 }
 
-void testGraphWithCycle() {
-  std::cout << "Test 2: Graph with cycle... ";
-
+TEST(GraphTest, GraphWithCycle) {
   Graph g(4);
   g.AddEdge(0, 1);
   g.AddEdge(1, 2);
@@ -59,80 +51,55 @@ void testGraphWithCycle() {
   g.AddEdge(3, 1);
 
   auto order = g.TopologicalSort();
-
-  assert(!order.has_value());
-
-  std::cout << "PASSED\n";
+  EXPECT_FALSE(order.has_value());
 }
 
-void testEmptyGraph() {
-  std::cout << "Test 3: Empty graph (no edges)... ";
-
+TEST(GraphTest, EmptyGraph) {
   Graph g(5);
-
   auto order = g.TopologicalSort();
 
-  assert(order.has_value());
-  assert(order->size() == 5);
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), 5u);
 
   std::vector<int> sorted_order = *order;
   std::sort(sorted_order.begin(), sorted_order.end());
   for (int i = 0; i < 5; ++i) {
-    assert(sorted_order[i] == i);
+    EXPECT_EQ(sorted_order[i], i);
   }
-
-  std::cout << "PASSED\n";
 }
 
-void testSingleVertex() {
-  std::cout << "Test 4: Single vertex graph... ";
-
+TEST(GraphTest, SingleVertex) {
   Graph g(1);
-
   auto order = g.TopologicalSort();
 
-  assert(order.has_value());
-  assert(order->size() == 1);
-  assert((*order)[0] == 0);
-
-  std::cout << "PASSED\n";
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), 1u);
+  EXPECT_EQ((*order)[0], 0);
 }
 
-void testSelfLoop() {
-  std::cout << "Test 5: Self-loop (cycle of length 1)... ";
-
+TEST(GraphTest, SelfLoop) {
   Graph g(3);
   g.AddEdge(0, 0);
 
   auto order = g.TopologicalSort();
-
-  assert(!order.has_value());
-
-  std::cout << "PASSED\n";
+  EXPECT_FALSE(order.has_value());
 }
 
-void testMultipleComponents() {
-  std::cout << "Test 6: Multiple independent components... ";
-
+TEST(GraphTest, MultipleComponents) {
   Graph g(6);
   g.AddEdge(0, 1);
   g.AddEdge(1, 2);
   g.AddEdge(3, 4);
 
   auto order = g.TopologicalSort();
-
-  assert(order.has_value());
-  assert(order->size() == 6);
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), 6u);
 
   std::vector<Edge> edges = {{0, 1}, {1, 2}, {3, 4}};
-  assert(isValidTopologicalOrder(*order, edges));
-
-  std::cout << "PASSED\n";
+  EXPECT_TRUE(IsValidTopologicalOrder(*order, edges));
 }
 
-void testComplexDAG() {
-  std::cout << "Test 7: Complex Graph... ";
-
+TEST(GraphTest, ComplexDAG) {
   Graph g(7);
   g.AddEdge(0, 1);
   g.AddEdge(0, 2);
@@ -144,106 +111,69 @@ void testComplexDAG() {
   g.AddEdge(5, 6);
 
   auto order = g.TopologicalSort();
-
-  assert(order.has_value());
-  assert(order->size() == 7);
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), 7u);
 
   std::vector<Edge> edges = {{0, 1}, {0, 2}, {1, 3}, {2, 3},
                              {3, 4}, {3, 5}, {4, 6}, {5, 6}};
-  assert(isValidTopologicalOrder(*order, edges));
-
-  std::cout << "PASSED\n";
+  EXPECT_TRUE(IsValidTopologicalOrder(*order, edges));
 }
 
-void testLargeCycle() {
-  std::cout << "Test 8: Large cycle... ";
-
+TEST(GraphTest, LargeCycle) {
   int n = 100;
   Graph g(n);
-
   for (int i = 0; i < n; ++i) {
     g.AddEdge(i, (i + 1) % n);
   }
 
   auto order = g.TopologicalSort();
-
-  assert(!order.has_value());
-
-  std::cout << "PASSED\n";
+  EXPECT_FALSE(order.has_value());
 }
 
-void testLongChain() {
-  std::cout << "Test 9: Long chain without cycle... ";
-
+TEST(GraphTest, LongChain) {
   int n = 100;
   Graph g(n);
-
   for (int i = 0; i < n - 1; ++i) {
     g.AddEdge(i, i + 1);
   }
 
   auto order = g.TopologicalSort();
-
-  assert(order.has_value());
-  assert(order->size() == static_cast<size_t>(n));
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), static_cast<size_t>(n));
 
   for (int i = 0; i < n; ++i) {
-    assert((*order)[i] == n - 1 - i);
+    EXPECT_EQ((*order)[i], n - 1 - i);
   }
-
-  std::cout << "PASSED\n";
 }
 
-void testInvalidEdges() {
-  std::cout << "Test 10: Invalid edges (out of range)... ";
-
+TEST(GraphTest, InvalidEdges) {
   Graph g(3);
   g.AddEdge(0, 1);
   
-  try {
-    g.AddEdge(-1, 2);
-    assert(false && "Expected std::out_of_range for u = -1");
-  } catch (const std::out_of_range&) {
-  }
-  
-  try {
-    g.AddEdge(0, 5);
-    assert(false && "Expected std::out_of_range for v = 5");
-  } catch (const std::out_of_range&) {
-  }
+  EXPECT_THROW(g.AddEdge(-1, 2), std::out_of_range);
+  EXPECT_THROW(g.AddEdge(0, 5), std::out_of_range);
 
   g.AddEdge(1, 2);
-
   auto order = g.TopologicalSort();
 
-  assert(order.has_value());
-  assert(order->size() == 3);
+  ASSERT_TRUE(order.has_value());
+  ASSERT_EQ(order->size(), 3u);
 
   std::vector<Edge> edges = {{0, 1}, {1, 2}};
-  assert(isValidTopologicalOrder(*order, edges));
-
-  std::cout << "PASSED\n";
+  EXPECT_TRUE(IsValidTopologicalOrder(*order, edges));
 }
 
 }  // namespace
 
-int main() {
-  std::cout << "Running tests for Graph class...\n";
-  std::cout << "================================\n";
-
-  testSimpleGraph();
-  testGraphWithCycle();
-  testEmptyGraph();
-  testSingleVertex();
-  testSelfLoop();
-  testMultipleComponents();
-  testComplexDAG();
-  testLargeCycle();
-  testLongChain();
-  testInvalidEdges();
-
-  std::cout << "================================\n";
-  std::cout << "All tests PASSED!\n";
-
-  return 0;
+int main(int argc, char **argv) {
+  try {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+  } catch (const std::exception &e) {
+    std::cerr << "Fatal error: " << e.what() << "\n";
+    return 1;
+  } catch (...) {
+    std::cerr << "Unknown fatal error\n";
+    return 1;
+  }
 }
