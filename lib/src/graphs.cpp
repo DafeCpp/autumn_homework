@@ -1,4 +1,5 @@
 #include "graphs.hpp"
+
 #include <stack>
 #include <stdexcept>
 #include <utility>
@@ -20,15 +21,14 @@ std::optional<std::vector<int>> Graph::TopologicalSort() const {
   std::stack<std::pair<int, int>> st;
 
   for (int start = 0; start < num_vertices_; ++start) {
-    if (color[start] != Color::White)
-      continue;
+    if (color[start] != Color::White) continue;
 
     st.push({start, 0});
     color[start] = Color::Gray;
     while (!st.empty()) {
-      auto &top = st.top();
+      auto& top = st.top();
       int u = top.first;
-      int &idx = top.second;
+      int& idx = top.second;
 
       bool pushed = false;
       while (idx < static_cast<int>(adj_list_[u].size())) {
