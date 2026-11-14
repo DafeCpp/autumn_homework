@@ -21,7 +21,6 @@ bool IsValidTopologicalOrder(const std::vector<int>& order,
   }
 
   for (const auto& edge : edges) {
-    // Исправлено: если источник идёт ПОСЛЕ назначения, порядок невалиден
     if (position[edge.from] > position[edge.to]) {
       return false;
     }
@@ -149,7 +148,7 @@ TEST(GraphTest, LongChain) {
 TEST(GraphTest, InvalidEdges) {
   Graph g(3);
   g.AddEdge(0, 1);
-  
+
   EXPECT_THROW(g.AddEdge(-1, 2), std::out_of_range);
   EXPECT_THROW(g.AddEdge(0, 5), std::out_of_range);
 
@@ -165,11 +164,11 @@ TEST(GraphTest, InvalidEdges) {
 
 }  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     std::cerr << "Fatal error: " << e.what() << "\n";
     return 1;
   } catch (...) {
