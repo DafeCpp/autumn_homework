@@ -1,0 +1,5 @@
+if(EXISTS "/workspaces/autumn_homework/.graph-build/demo/examples/bfs_visualization/bfs_visualization_tests[1]_tests.cmake")
+  include("/workspaces/autumn_homework/.graph-build/demo/examples/bfs_visualization/bfs_visualization_tests[1]_tests.cmake")
+else()
+  add_test(bfs_visualization_tests_NOT_BUILT bfs_visualization_tests_NOT_BUILT)
+endif()
