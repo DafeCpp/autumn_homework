@@ -2,6 +2,7 @@
 #include <queue>
 #include <algorithm>
 #include <vector>
+#include <set>
 
 std::vector<int> topological_sort(int n,
                                   const std::vector<std::pair<int,int>>& edges) {
@@ -110,4 +111,67 @@ int min_edges_to_make_strongly_connected(int n, const std::vector<std::pair<int,
     }
 
     return std::max(sources, sinks);
+}
+
+void dfs_bridges(int v, int p_edge, const std::vector<std::vector<std::pair<int,int>>>& adj,
+                 std::vector<int>& tin, std::vector<int>& low, 
+                 std::vector<bool>& is_articulation, std::set<std::pair<int,int>>& bridges, 
+                 int& timer) {
+    tin[v] = low[v] = timer++;
+    int children = 0;
+    for (auto [to, id] : adj[v]) {
+        if (id == p_edge) continue;
+        if (tin[to] != -1) {
+            low[v] = std::min(low[v], tin[to]);
+        } else {
+            children++;
+            dfs_bridges(to, id, adj, tin, low, is_articulation, bridges, timer);
+            low[v] = std::min(low[v], low[to]);
+            
+            if (low[to] > tin[v]) {
+                int u1 = std::min(v, to), u2 = std::max(v, to);
+                bridges.insert({u1, u2});
+            }
+            if (p_edge != -1 && low[to] >= tin[v]) {
+                is_articulation[v] = true;
+            }
+        }
+    }
+    if (p_edge == -1 && children > 1) {
+        is_articulation[v] = true;
+    }
+}
+
+NetworkVulnerabilities find_vulnerabilities(
+    int n, 
+    const std::vector<std::pair<int, int>>& edges
+) {
+    std::vector<std::vector<std::pair<int, int>>> adj(n + 1);
+    for (int i = 0; i < (int)edges.size(); ++i) {
+        int u = edges[i].first;
+        int v = edges[i].second;
+        adj[u].push_back({v, i});
+        adj[v].push_back({u, i});
+    }
+
+    std::vector<int> tin(n + 1, -1), low(n + 1, -1);
+    std::vector<bool> is_articulation(n + 1, false);
+    std::set<std::pair<int, int>> bridges;
+    int timer = 0;
+
+    for (int i = 1; i <= n; ++i) {
+        if (tin[i] == -1) {
+            dfs_bridges(i, -1, adj, tin, low, is_articulation, bridges, timer);
+        }
+    }
+
+    NetworkVulnerabilities result;
+    for (int i = 1; i <= n; ++i) {
+        if (is_articulation[i]) result.critical_routers.push_back(i);
+    }
+    for (const auto& b : bridges) {
+        result.critical_cables.push_back(b);
+    }
+
+    return result;
 }
