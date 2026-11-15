@@ -67,3 +67,4 @@ node_modules/
 
 # Hand-written project entry point
 !/Makefile
+build/
