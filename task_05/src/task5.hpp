@@ -17,4 +17,4 @@ struct Res {
 
 Res SolvedMST(int n, int m, int d, const std::vector<Edge>& edges);
 
-#endif  
+#endif

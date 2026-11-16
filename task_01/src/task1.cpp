@@ -18,7 +18,7 @@ bool dfs(int v, const std::vector<std::vector<int>>& adj,
   order.push_back(v);
   return false;
 }
-}  
+}  // namespace
 std::vector<int> Solve(int n, const std::vector<std::pair<int, int>>& edges) {
   std::vector<std::vector<int>> adj(n);
   for (size_t i = 0; i < edges.size(); ++i) {

@@ -47,4 +47,3 @@ TEST(MaxFlowTests, MultipleEdges) {
   Res res = Solve(n, m, edges);
   ASSERT_EQ(res.max_flow, 10);
 }
-

@@ -36,8 +36,8 @@ struct Dsu {
 
 void dfs(int cur_v, int p,
          const std::vector<std::vector<std::pair<int, int>>>& adj,
-         std::vector<int>& path_adges, int target,
-         std::vector<int>& final_path, bool& found) {
+         std::vector<int>& path_adges, int target, std::vector<int>& final_path,
+         bool& found) {
   if (cur_v == target) {
     final_path = path_adges;
     found = true;
