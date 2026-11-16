@@ -2,8 +2,9 @@
 
 #include <vector>
 
-static bool dfs(int v, const std::vector<std::vector<int>>& adj,
-                std::vector<int>& color, std::vector<int>& order) {
+namespace {
+bool dfs(int v, const std::vector<std::vector<int>>& adj,
+         std::vector<int>& color, std::vector<int>& order) {
   color[v] = 1;
   for (size_t i = 0; i < adj[v].size(); ++i) {
     int neighbor = adj[v][i];
@@ -17,7 +18,7 @@ static bool dfs(int v, const std::vector<std::vector<int>>& adj,
   order.push_back(v);
   return false;
 }
-
+}  
 std::vector<int> Solve(int n, const std::vector<std::pair<int, int>>& edges) {
   std::vector<std::vector<int>> adj(n);
   for (size_t i = 0; i < edges.size(); ++i) {

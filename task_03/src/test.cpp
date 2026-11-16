@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "task3.hpp"
+#include "task3.cpp"
 
 TEST(NetworkTests, Example1) {
   int n = 2;

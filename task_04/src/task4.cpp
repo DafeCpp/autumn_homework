@@ -1,13 +1,14 @@
 #include "task4.hpp"
 
-
 #include <queue>
 #include <vector>
 
+namespace {
+
 const long long INF = 1e18;
 
-static bool BellmanFord(int n, const std::vector<Edge>& edges,
-                        std::vector<long long>& h) {
+bool BellmanFord(int n, const std::vector<Edge>& edges,
+                 std::vector<long long>& h) {
   h.assign(n + 1, 0);
 
   std::vector<Edge> extended_edges = edges;
@@ -38,7 +39,7 @@ static bool BellmanFord(int n, const std::vector<Edge>& edges,
   return true;
 }
 
-static std::vector<long long> Dijkstra(
+std::vector<long long> Dijkstra(
     int n, int src,
     const std::vector<std::vector<std::pair<int, long long>>>& adj) {
   std::vector<long long> dist(n, INF);
@@ -66,6 +67,8 @@ static std::vector<long long> Dijkstra(
 
   return dist;
 }
+
+}  // namespace
 
 std::vector<std::vector<long long>> Johnson(int n,
                                             const std::vector<Edge>& edges) {

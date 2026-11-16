@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <vector>
 
-static void dfs1(int v, const std::vector<std::vector<int>>& adj,
-                 std::vector<bool>& visited, std::vector<int>& order) {
+namespace {
+
+void dfs1(int v, const std::vector<std::vector<int>>& adj,
+          std::vector<bool>& visited, std::vector<int>& order) {
   visited[v] = true;
   for (size_t i = 0; i < adj[v].size(); ++i) {
     int neighbor = adj[v][i];
@@ -15,8 +17,8 @@ static void dfs1(int v, const std::vector<std::vector<int>>& adj,
   order.push_back(v);
 }
 
-static void dfs2(int v, const std::vector<std::vector<int>>& adj_rev,
-                 std::vector<int>& group, int group_id) {
+void dfs2(int v, const std::vector<std::vector<int>>& adj_rev,
+          std::vector<int>& group, int group_id) {
   group[v] = group_id;
   for (size_t i = 0; i < adj_rev[v].size(); ++i) {
     int neighbor = adj_rev[v][i];
@@ -25,6 +27,8 @@ static void dfs2(int v, const std::vector<std::vector<int>>& adj_rev,
     }
   }
 }
+
+}  // namespace
 
 int MinEdges(int n, const std::vector<std::pair<int, int>>& edges) {
   if (n <= 1) {

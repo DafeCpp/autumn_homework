@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "task4.hpp"
+#include "task4.cpp"
 
 TEST(JohnsonTests, SimpleGraph) {
   int n = 3;

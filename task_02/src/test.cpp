@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "task2.hpp"
+#include "task2.cpp"
 
 TEST(GraphTests, Example1) {
   int n = 2;
