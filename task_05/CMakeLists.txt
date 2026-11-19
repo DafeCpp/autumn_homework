@@ -15,7 +15,12 @@ list(REMOVE_ITEM source_list ${test_source_list})
 
 include_directories(${PROJECT_NAME} PUBLIC src)
 
-add_executable(${PROJECT_NAME} ${source_list})
+list(REMOVE_ITEM source_list "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+add_library(${PROJECT_NAME}_algorithms ${source_list})
+target_include_directories(${PROJECT_NAME}_algorithms PUBLIC src)
+target_link_libraries(${PROJECT_NAME}_algorithms PUBLIC Utils)
+add_executable(${PROJECT_NAME} src/main.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_algorithms)
 
 # Locate GTest
 enable_testing()
@@ -30,6 +35,7 @@ add_executable(${PROJECT_NAME}_tests ${test_source_list})
 target_link_libraries(
   ${PROJECT_NAME}_tests
   GTest::gtest_main
+  ${PROJECT_NAME}_algorithms
   Utils
 )
 
