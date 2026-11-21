@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Граф зависимостей</title>
+  <style>
+    :root { color-scheme: dark; background: #130f20; color: #fff1fa; }
+    body { max-width: 800px; margin: 2rem auto; padding: 0 1rem; font: 16px system-ui; }
+    label, textarea { display: block; }
+    textarea { box-sizing: border-box; width: 100%; margin: .5rem 0; padding: .7rem; font: 1rem monospace; }
+    button { padding: .6rem 1rem; background: #ffadd2; color: #251329; border: 0; border-radius: .4rem; font: inherit; }
+    .stage { position: relative; margin-top: 1rem; border-radius: .75rem; overflow: hidden;
+             background: radial-gradient(ellipse at bottom, #63334f, #251a3b 75%); }
+    canvas { display: block; width: 100%; height: auto; }
+    #result { position: absolute; inset: 0; display: grid; place-items: center;
+              pointer-events: none; font: italic 900 clamp(2rem, 11vw, 7rem)/1 system-ui; }
+    #result:empty { display: none; }
+    #result.success { color: #ffd58a; background: #391c50aa; text-shadow: 0 5px #9f3c6a, 0 0 24px #ff73b1; }
+    #result.wasted { color: #ff566b; background: #120911d9; text-shadow: 0 5px #690e2c; }
+  </style>
+</head>
+<body>
+  <h1>Граф зависимостей</h1>
+  <form id="input-form">
+    <label for="source">Первая строка — n m. Следующие m строк — пары a b.</label>
+    <textarea id="source" rows="7" required spellcheck="false"
+              placeholder="Вставь входные данные задачи"></textarea>
+    <button type="submit">Построить</button>
+  </form>
+
+  <div class="stage">
+    <canvas id="graph" width="720" height="480" aria-label="Граф зависимостей"></canvas>
+    <div id="result" aria-hidden="true"></div>
+  </div>
+  <p id="status" aria-live="polite"></p>
+
+  <script>
+    const form = document.getElementById("input-form");
+    const source = document.getElementById("source");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const canvas = document.getElementById("graph");
+    const ctx = canvas.getContext("2d");
+    let runId = 0;
+
+    function readGraph(input) {
+      const lines = input.trim().split(/\r?\n/);
+      const pairs = lines.map((line, i) => {
+        const match = line.match(/^\s*(\d+)\s+(\d+)\s*$/);
+        if (!match) throw new Error(`Строка ${i + 1}: нужны два целых числа.`);
+        return [Number(match[1]), Number(match[2])];
+      });
+      const [[n, m], ...edges] = pairs;
+
+      if (n < 1 || n > 40 || m > 300) {
+        throw new Error("Для анимации — от 1 до 40 вершин и до 300 рёбер.");
+      }
+      if (edges.length !== m) {
+        throw new Error(`После первой строки должно быть ровно ${m} пар.`);
+      }
+      if (edges.some(([a, b]) => a >= n || b >= n)) {
+        throw new Error(`Номера вершин должны быть от 0 до ${n - 1}.`);
+      }
+      return {n, edges};
+    }
+
+    function arrowhead(x, y, angle) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (const offset of [-0.5, 0.5]) {
+        ctx.lineTo(x - 11 * Math.cos(angle + offset),
+                   y - 11 * Math.sin(angle + offset));
+        ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    function drawEdge([x, y], [tx, ty], radius, loop, fresh) {
+      ctx.strokeStyle = fresh ? "#ffd17d" : "#b29bc9";
+      ctx.lineWidth = fresh ? 3 : 1.5;
+      ctx.beginPath();
+
+      if (loop) {
+        const endX = x + radius * 0.65;
+        const endY = y - radius * 0.76;
+        ctx.moveTo(x - radius * 0.65, endY);
+        ctx.bezierCurveTo(x - 38, y - 50, x + 38, y - 50, endX, endY);
+        ctx.stroke();
+        arrowhead(endX, endY, Math.atan2(endY - y + 50, endX - x - 38));
+        return;
+      }
+
+      const length = Math.hypot(tx - x, ty - y);
+      const nx = -(ty - y) / length;
+      const ny = (tx - x) / length;
+      const bend = Math.min(21, length * 0.2);
+      const cx = (x + tx) / 2 + bend * nx;
+      const cy = (y + ty) / 2 + bend * ny;
+      const start = Math.atan2(cy - y, cx - x);
+      const end = Math.atan2(ty - cy, tx - cx);
+      const ex = tx - radius * Math.cos(end);
+      const ey = ty - radius * Math.sin(end);
+
+      ctx.moveTo(x + radius * Math.cos(start), y + radius * Math.sin(start));
+      ctx.quadraticCurveTo(cx, cy, ex, ey);
+      ctx.stroke();
+      arrowhead(ex, ey, end);
+    }
+
+    function paint(n, edges, visible) {
+      const radius = n > 20 ? 12 : 18;
+      const points = Array.from({length: n}, (_, i) => {
+        if (n === 1) return [360, 240];
+        const angle = 2 * Math.PI * i / n - Math.PI / 2;
+        return [360 + 285 * Math.cos(angle), 240 + 168 * Math.sin(angle)];
+      });
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < visible; i++) {
+        const [a, b] = edges[i];
+        drawEdge(points[b], points[a], radius, a === b, i === visible - 1);
+      }
+
+      ctx.font = `${n > 20 ? 12 : 17}px system-ui`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      points.forEach(([x, y], vertex) => {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = "#211634";
+        ctx.fill();
+        ctx.strokeStyle = "#ffaacb";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#fff1fa";
+        ctx.fillText(vertex, x, y);
+      });
+    }
+
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const run = ++runId;
+      const input = source.value;
+      result.textContent = "";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      try {
+        const {n, edges} = readGraph(input);
+        paint(n, edges, 0);
+        status.textContent = `Рёбра 0 / ${edges.length}`;
+
+        const pause = Math.max(45, Math.min(550, 7000 / edges.length));
+        for (let i = 0; i < edges.length; i++) {
+          await delay(pause);
+          if (run !== runId) return;
+          paint(n, edges, i + 1);
+          status.textContent = `Рёбра ${i + 1} / ${edges.length} · Ввод ${edges[i].join(" ")}`;
+        }
+
+        status.textContent = "Проверяю граф через C++…";
+        const response = await fetch("/check", {method: "POST", body: input});
+        const data = await response.json();
+        if (run !== runId) return;
+        if (!response.ok) throw new Error(data.error);
+
+        const success = data.answer !== "-1";
+        result.className = success ? "success" : "wasted";
+        result.textContent = success ? "SUCCESS" : "WASTED";
+        status.textContent = success
+          ? `SUCCESS · Порядок установки ${data.answer}`
+          : "WASTED · Найден цикл, ответ −1";
+      } catch (error) {
+        if (run === runId) status.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
