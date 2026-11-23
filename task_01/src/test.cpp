@@ -1,5 +1,61 @@
 #include <gtest/gtest.h>
 
-TEST(Test, Simple) {
-  ASSERT_EQ(1, 1);  // Stack []
+#include "solution.hpp"
+
+TEST(Test, Chain) {
+  Graph graph({{1}, {2}, {}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({2, 1, 0}));
+}
+
+TEST(Test, LongChain) {
+  const int n = 200000;
+  std::vector<std::vector<int>> adj(n);
+  std::vector<int> expected;
+  for (int i = 0; i < n; ++i) {
+    if (i + 1 < n) adj[i].push_back(i + 1);
+    expected.push_back(n - 1 - i);
+  }
+  ASSERT_EQ(get_requirements(Graph(adj)), expected);
+}
+
+TEST(Test, CycleWithTail) {
+  Graph graph({{1}, {2}, {0}, {1}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({-1}));
+}
+
+TEST(Test, NoDependencies) {
+  Graph graph({{}, {}, {}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({0, 1, 2}));
+}
+
+TEST(Test, SelfLoop) {
+  Graph graph({{}, {1}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({-1}));
+}
+
+TEST(Test, Diamond) {
+  Graph graph({{1, 2}, {3}, {3}, {}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({3, 1, 2, 0}));
+}
+
+TEST(Test, CycleInSeparateComponent) {
+  Graph graph({{}, {0}, {3}, {4}, {2}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({-1}));
+}
+
+TEST(Test, SingleVertex) {
+  std::vector<std::vector<int>> adj(1);
+  Graph graph(adj);
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({0}));
+}
+
+TEST(Test, DuplicateDependencies) {
+  Graph graph({{1, 1}, {}});
+  EXPECT_EQ(get_requirements(graph), std::vector<int>({1, 0}));
+}
+
+TEST(Test, TenGraph) {
+  Graph graph({{1, 2}, {3, 4}, {4, 5}, {6}, {6, 7}, {7}, {8}, {8, 9}, {}, {}});
+  EXPECT_EQ(get_requirements(graph),
+            std::vector<int>({8, 6, 3, 9, 7, 4, 1, 5, 2, 0}));
 }
