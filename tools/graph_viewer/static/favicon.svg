@@ -1,7 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="8" fill="#286c58"/>
-  <path d="M9 23 16 9 24 23H9" fill="none" stroke="#e4f1e6" stroke-width="2.5" stroke-linejoin="round"/>
-  <circle cx="9" cy="23" r="3.5" fill="#e4f1e6"/>
-  <circle cx="24" cy="23" r="3.5" fill="#e4f1e6"/>
-  <circle cx="16" cy="9" r="4.5" fill="#edbb53" stroke="#286c58" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Графы</title>
+  <path d="M5.5 8 2.5 3.5M5.5 8 13.5 2.75M5.5 8l8 5.25" stroke="#2F3133" stroke-width="1.25" stroke-linecap="round"/>
+  <path d="M5.5 8 13.5 2.75" stroke="#C5522D" stroke-width="1.25" stroke-linecap="round"/>
+  <circle cx="5.5" cy="8" r="1.65" fill="#2F3133"/>
+  <circle cx="2.5" cy="3.5" r="1.65" fill="#2F3133"/>
+  <circle cx="13.5" cy="13.25" r="1.65" fill="#2F3133"/>
+  <circle cx="13.5" cy="2.75" r="2" fill="white" stroke="#C5522D" stroke-width="1.45"/>
 </svg>

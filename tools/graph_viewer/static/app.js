@@ -2,53 +2,106 @@
 const $ = id => document.getElementById(id);
 const M = GraphModel;
 let data = null, steps = [-1], index = 0, timer = null;
-let removedNodes = new Set(), removedEdges = new Set(), signature = '', loading = false;
+let signature = '', loading = false;
 let treeKey = '';
 // У каждой области свои координаты и масштаб; шаг записи общий.
-const views = ['graph', 'tree'].map(id => ({svg: $(id), positions: new Map(), box: [0,0,900,570]}));
+const views = ['graph', 'tree'].map(id => ({svg: $(id), positions: new Map(), box: [0,0,900,570], baseWidth: 900}));
 function element(tag, attrs = {}, text = null) {
   const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
   if (text !== null) el.textContent = text;
   return el;
 }
-function stop() { clearTimeout(timer); timer = null; $('play').textContent = '▶ Воспроизвести'; }
+function playbackButton(playing) {
+  const label = playing ? 'Пауза' : 'Воспроизвести';
+  $('play').setAttribute('aria-label', label); $('play').title = label;
+  $('play').querySelector('path').setAttribute('d', playing ? 'M9 5v14 M15 5v14' : 'm8 5 11 7-11 7z');
+}
+function stop() { clearTimeout(timer); timer = null; playbackButton(false); }
+function updateCaseStatus() {
+  const test = catalogCases.find(c => c.id === $('case').value);
+  $('case-verdict').textContent = test?.verdict || '';
+  $('case-verdict').dataset.status = test?.status || 'not_run';
+  $('case-verdict').dataset.stale = String(test?.verdict === 'Нужно перезапустить');
+  const mismatch = test?.status === 'fail' && data?.id === test.id && data.actual !== null;
+  $('actual').classList.toggle('wrong-output', mismatch);
+  $('actual-status').hidden = !mismatch;
+  $('actual-status').classList.toggle('wrong', mismatch);
+  $('actual-status').textContent = mismatch ? 'Не совпадает' : '';
+}
+function updateZoom() {
+  const visible = views.filter(view => !view.svg.parentElement.hidden);
+  $('zoom-level').textContent = visible.map(view => Math.round(100 * view.baseWidth / view.box[2]) + '%').filter((x,i,a) => a.indexOf(x) === i).join(' / ');
+}
+function setInspector(open) {
+  $('inspector-content').hidden = !open;
+  $('viewer').classList.toggle('inspector-closed', !open);
+  $('inspector-toggle').setAttribute('aria-expanded', String(open));
+  $('inspector-toggle').textContent = open ? 'Свернуть' : 'Развернуть';
+}
+function clearSelection(message = 'Выберите тест') {
+  stop(); data = null; signature = ''; steps = [-1]; index = 0;
+  views.forEach(view => view.svg.replaceChildren());
+  $('values').replaceChildren();
+  for (const id of ['input','expected','actual','case-verdict','description']) $(id).textContent = '';
+  $('graph-title').textContent = message;
+  $('step-kicker').textContent = 'Шаги решения'; $('step-label').textContent = message;
+  $('counter').textContent = '— / —'; $('timeline').value = $('timeline').max = 0;
+  for (const id of ['first','previous','play','next','timeline','speed']) $(id).disabled = true;
+  $('answer-tools').hidden = $('tree-note').hidden = $('actual-status').hidden = true;
+  $('actual').classList.remove('wrong-output');
+}
 function showError(error) { $('notice').textContent = error.message; }
 async function get(url) {
   const r = await fetch(url); const body = await r.json();
   if (!r.ok) throw Error(body.error || 'Не удалось загрузить данные');
   return body;
 }
+function fittedBox(positions, padding = 70) {
+  const points = [...positions.values()];
+  if (!points.length) return [0,0,900,570];
+  const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+  const left = Math.min(...xs), right = Math.max(...xs), top = Math.min(...ys), bottom = Math.max(...ys);
+  const width = Math.max(320, right-left+padding*2), height = Math.max(240, bottom-top+padding*2);
+  return [(left+right-width)/2, (top+bottom-height)/2, width, height];
+}
 function resetPositions() {
   const layout = GraphLayout.layout(data.graph);
-  views[0].positions = layout.positions; views[0].box = layout.box; treeKey = '';
+  views[0].positions = layout.positions;
+  // Leave room for parallel edges and self-loops, including loops above a vertex.
+  const multiplicity = new Map();
+  for (const edge of data.graph.edges) {
+    const pair = [edge.from, edge.to].sort((a,b) => a-b).join(':');
+    multiplicity.set(pair, (multiplicity.get(pair) || 0) + 1);
+  }
+  const padding = Math.max(70, 90 + 18 * Math.max(0, ...multiplicity.values()));
+  views[0].box = fittedBox(layout.positions, padding); views[0].baseWidth = views[0].box[2]; treeKey = '';
 }
 async function load(refresh = false) {
   if (loading) return;
   const requested = $('case').value;
-  if (!requested) return;
+  if (!requested) { clearSelection('Нет доступных тестов'); return; }
   loading = true;
   try {
     const next = await get('api/case?id=' + encodeURIComponent(requested));
     if ($('case').value !== requested) return;
     const encoded = JSON.stringify(next);
-    if (refresh && encoded === signature) { $('notice').textContent = next.warnings.join('\n'); return; }
+    if (refresh && data && encoded === signature) { $('notice').textContent = next.warnings.join('\n'); return; }
     const sameGraph = data && data.id === next.id && JSON.stringify(data.graph) === JSON.stringify(next.graph);
     stop(); data = next; signature = encoded; steps = M.steps(data.events);
     index = refresh && sameGraph ? Math.min(index, steps.length - 1) : 0;
-    if (!sameGraph) { resetPositions(); removedNodes.clear(); removedEdges.clear(); $('answer').value = ''; }
+    if (!sameGraph) { resetPositions(); $('answer').value = ''; }
     $('description').textContent = data.label;
     $('input').textContent = data.input;
-    $('expected').textContent = data.expected || 'Нет файла эталона';
-    $('actual').textContent = data.actual || 'Нет сохранённого несовпадения';
-    $('graph-title').textContent = `${data.name} · ${data.graph.n} вершин · ${data.graph.edges.length} рёбер`;
+    $('expected').textContent = data.expected === null ? 'Нет файла эталона' : (data.expected || '(Пустой вывод)');
+    $('actual').textContent = data.actual === null ? 'Вывод не сохранён. Сохраняются несовпадения при запуске с --save-actual.' : (data.actual || '(Пустой вывод)');
+    $('graph-title').textContent = `${data.name}.in · ${data.graph.n} вершин · ${data.graph.edges.length} рёбер`;
     $('notice').textContent = data.warnings.join('\n');
-    $('answer').disabled = data.task !== 'task_03';
-    $('experiment').disabled = data.graph.directed;
-    if (data.graph.directed) $('experiment').checked = false;
+    $('answer-tools').hidden = $('answer').disabled = data.task !== 'task_03';
+    updateCaseStatus();
     render();
   } catch (error) {
-    if (!refresh) { data = null; views.forEach(view => view.svg.replaceChildren()); $('values').replaceChildren(); stop(); }
+    if (!refresh) clearSelection('Граф недоступен');
     showError(error);
   } finally { loading = false; if ($('case').value !== requested) load(); }
 }
@@ -72,8 +125,9 @@ function render() {
   const key = signature + ':' + index;
   if (treeKey !== key) {
     const layout = M.traversal(data.graph, state);
-    views[1].positions = layout.positions; views[1].box = layout.box; treeKey = key;
+    views[1].positions = layout.positions; views[1].box = layout.box; views[1].baseWidth = layout.box[2]; treeKey = key;
   }
+  document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === mode)));
   $('graph-panel').hidden = mode === 'tree';
   $('tree-panel').hidden = mode === 'graph';
   $('canvases').classList.toggle('split', mode === 'both');
@@ -84,40 +138,39 @@ function render() {
   views.forEach((view, i) => drawGraph(view, i === 1, state, answer));
   $('values').replaceChildren();
   const labels = {queued:'В очереди',active:'Текущая',done:'Обработана',cut:'Критическая'};
-  for (const v of views[0].positions.keys()) {
-    const row = document.createElement('tr');
+  for (const v of [...views[0].positions.keys()].sort((a,b) => a-b)) {
+    const row = document.createElement('tr'); row.classList.toggle('current-row', state.nodes.get(v) === 'active');
     for (const value of [v, labels[state.nodes.get(v)] || 'Не посещена', [...(state.values.get(v)||[])].map(([k,val])=>`${k} = ${val}`).join(', ') || '—']) {
       const cell = document.createElement('td');cell.textContent = value;row.append(cell);
     }
     $('values').append(row);
   }
   const hasSteps = steps.length > 1;
-  $('counter').textContent = hasSteps ? `${index} / ${steps.length-1}` : 'Запись не найдена';
+  $('counter').textContent = hasSteps ? `${index} / ${steps.length-1}` : '— / —';
+  $('step-kicker').textContent = hasSteps ? `Шаг ${index}` : 'Нет записи шагов';
   $('step-label').textContent = index === 0 ? (hasSteps ? 'Исходное состояние графа' : 'Граф доступен без записи. Запустите решение с --trace-dir, чтобы увидеть шаги.') : data.events[steps[index]].message;
   $('timeline').max = steps.length-1;$('timeline').value = index;
   for (const id of ['first','previous']) $(id).disabled = index === 0;
   $('next').disabled = index === steps.length-1;
-  $('play').disabled = !hasSteps; $('timeline').disabled = !hasSteps;
-  const before = M.components(data.graph).count;
-  $('components').textContent = data.graph.directed ? 'Отключения доступны для неориентированных графов' : `Компонент: ${before} → ${M.components(data.graph,removedNodes,removedEdges).count}`;
+  $('play').disabled = !hasSteps; $('timeline').disabled = !hasSteps; $('speed').disabled = !hasSteps;
+  updateZoom();
 }
 function drawGraph(view, tree, state, answer) {
   const {svg, positions, box} = view;
   svg.replaceChildren(); svg.setAttribute('viewBox',box.join(' '));
   const defs = element('defs'), marker = element('marker',{id:`arrow-${svg.id}`,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
-  marker.append(element('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#6b897b'}));defs.append(marker);svg.append(defs);
+  marker.append(element('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#7d8288'}));defs.append(marker);svg.append(defs);
   for (const e of data.graph.edges) {
     const role = state.roles.get(e.id) || '';
     if (tree && !role) continue;
-    const hidden = removedEdges.has(e.id) || removedNodes.has(e.from) || removedNodes.has(e.to);
     const d = edgePath(e, positions, tree && ['back', 'non_tree'].includes(role));
-    const path = element('path',{d,class:`edge ${role} ${state.edges.get(e.id)||''} ${answer.edges.has(e.id)?'answer':''} ${hidden?'removed':''}`});
+    const path = element('path',{d,class:`edge ${role} ${state.edges.get(e.id)||''} ${answer.edges.has(e.id)?'answer':''}`});
     if (data.graph.directed) path.setAttribute('marker-end',`url(#arrow-${svg.id})`);
     const hit = element('path',{d,class:'edge-hit','data-edge':e.id});
     hit.append(element('title',{},`Ребро ${e.id}: ${e.from} — ${e.to}`));svg.append(path,hit);
   }
   for (const [v, [x,y]] of positions) {
-    const g = element('g',{transform:`translate(${x} ${y})`,class:`node ${state.nodes.get(v)||''} ${answer.nodes.has(v)?'answer':''} ${removedNodes.has(v)?'removed':''}`,'data-node':v});
+    const g = element('g',{transform:`translate(${x} ${y})`,class:`node ${state.nodes.get(v)||''} ${answer.nodes.has(v)?'answer':''}`,'data-node':v});
     g.append(element('circle',{r:20}),element('text',{},v));
     const distance = state.values.get(v)?.get('distance');
     if (distance !== undefined) g.append(element('text',{y:33,class:'distance'},`d = ${distance}`));
@@ -132,19 +185,28 @@ $('timeline').oninput = e => setStep(Number(e.target.value));
 $('play').onclick = () => {
   if (timer) return stop();
   if (index === steps.length-1) index = 0;
-  $('play').textContent = 'Ⅱ Пауза';
+  playbackButton(true);
   const tick = () => { if (index >= steps.length-1) return stop();index++;render();timer = setTimeout(tick,Number($('speed').value)); };
   timer = setTimeout(tick,Number($('speed').value));
 };
 $('case').onchange = () => { stop(); load(); };
 $('answer').onchange = render;
 $('view-mode').onchange = render;
-$('restore').onclick = () => { removedNodes.clear();removedEdges.clear();render(); };
-$('experiment').onchange = () => { if (!$('experiment').checked) { removedNodes.clear();removedEdges.clear();render(); } };
+for (const button of document.querySelectorAll('[data-view]')) {
+  button.onclick = () => { $('view-mode').value = button.dataset.view; render(); };
+}
+$('inspector-toggle').onclick = () => setInspector($('inspector-content').hidden);
+for (const button of document.querySelectorAll('[data-layout]')) {
+  button.onclick = () => {
+    $('viewer').classList.toggle('inspector-right', button.dataset.layout === 'right');
+    document.querySelectorAll('[data-layout]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+  };
+}
 function zoom(view, factor) {
   const box = view.box;
   view.box = [box[0]+box[2]*(1-factor)/2,box[1]+box[3]*(1-factor)/2,box[2]*factor,box[3]*factor];
   view.svg.setAttribute('viewBox',view.box.join(' '));
+  updateZoom();
 }
 function zoomVisible(factor) { views.filter(view => !view.svg.parentElement.hidden).forEach(view => zoom(view, factor)); }
 $('zoom-in').onclick = () => zoomVisible(.8); $('zoom-out').onclick = () => zoomVisible(1.25);
@@ -158,8 +220,8 @@ for (const view of views) {
     if (!data) return;
     // Захват указателя может перенаправить dblclick на SVG даже после щелчка по вершине.
     startedOnBackground = e.target === svg;
-    const node = e.target.closest('[data-node]'), edge = e.target.closest('[data-edge]');
-    drag = {node:node?Number(node.dataset.node):null,edge:edge?Number(edge.dataset.edge):null,p:point(e),x:e.clientX,y:e.clientY};
+    const node = e.target.closest('[data-node]');
+    drag = {node:node?Number(node.dataset.node):null,p:point(e),x:e.clientX,y:e.clientY};
     dragged=false; svg.setPointerCapture(e.pointerId);
   };
   svg.onpointermove = e => {
@@ -170,12 +232,7 @@ for (const view of views) {
     render();
   };
   svg.onpointerup = e => {
-    const target = drag; drag = null; svg.releasePointerCapture(e.pointerId);
-    if (!target || !data || dragged || !$('experiment').checked || data.graph.directed) return;
-    const collection = target.node !== null ? removedNodes : removedEdges;
-    const id = target.node !== null ? target.node : target.edge;
-    if (id === null) return;
-    collection.has(id) ? collection.delete(id) : collection.add(id); render();
+    drag = null; svg.releasePointerCapture(e.pointerId);
   };
   svg.onpointercancel = () => {drag=null;};
   // Двойной щелчок по фону открывает полный экран, не затрагивая элементы графа.
@@ -187,7 +244,8 @@ for (const view of views) {
 const workspace = $('viewer');
 function fullscreenState() {
   const expanded = document.fullscreenElement === workspace || workspace.classList.contains('expanded');
-  $('fullscreen').textContent = expanded ? 'Свернуть' : 'На весь экран';
+  const label = expanded ? 'Выйти из полного экрана' : 'На весь экран';
+  $('fullscreen').setAttribute('aria-label', label); $('fullscreen').title = label;
   $('fullscreen').setAttribute('aria-pressed', String(expanded));
 }
 async function toggleFullscreen() {
@@ -209,12 +267,73 @@ document.addEventListener('fullscreenchange', fullscreenState);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { workspace.classList.remove('expanded'); fullscreenState(); }
 });
-async function init() {
-  try {
-    const cases=await get('api/cases');$('case').replaceChildren();
-    for(const c of cases){const option=document.createElement('option');option.value=c.id;option.textContent=`${c.task} / ${c.name}`;$('case').append(option);}
-    if(!cases.length) throw Error('Не найдены файловые тесты');
-    await load();
-  } catch(error){showError(error);}
+const inspectorButtons = document.querySelectorAll('.inspector-tabs button');
+for (const button of inspectorButtons) {
+  button.onclick = () => {
+    setInspector(true);
+    for (const tab of inspectorButtons) {
+      tab.setAttribute('aria-pressed', String(tab === button));
+      $(tab.dataset.panel).hidden = tab !== button;
+    }
+  };
 }
-init();setInterval(()=>load(true),3000);
+let catalogCases = [];
+function selectCase(id) {
+  $('case').value = id;
+  $('custom-case').value = catalogCases.find(c => c.id === id && c.custom)?.id || '';
+  document.querySelectorAll('.test-result').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.id === id)));
+  updateCaseStatus(); stop(); load();
+}
+function showCases() {
+  const cases = catalogCases.filter(c => c.task === $('task').value);
+  const builtins = cases.filter(c => !c.custom);
+  $('test-summary').textContent = `${builtins.filter(c => c.status === 'ok').length} / ${builtins.length} OK`;
+  $('test-results').replaceChildren();
+  for (const [i, c] of builtins.entries()) {
+    const button = document.createElement('button');
+    button.className = 'test-result';
+    button.dataset.id = c.id;
+    button.dataset.status = c.status;
+    button.dataset.stale = String(c.verdict === 'Нужно перезапустить');
+    button.title = `${c.name}.in · ${c.verdict}`;
+    button.setAttribute('aria-pressed', String(c.id === $('case').value));
+    const name = document.createElement('span');
+    name.textContent = c.name + '.in'; name.className = 'test-name';
+    const verdict = document.createElement('span');
+    verdict.textContent = c.verdict; verdict.className = 'verdict';
+    const number = document.createElement('span'); number.className = 'test-index'; number.textContent = String(i+1).padStart(2,'0'); number.setAttribute('aria-hidden','true');
+    const copy = document.createElement('span'); copy.className = 'test-copy'; copy.append(name, verdict);
+    button.append(number, copy);
+    button.onclick = () => selectCase(c.id);
+    $('test-results').append(button);
+  }
+  $('custom-case').replaceChildren(new Option('Выберите свой тест', ''));
+  for (const c of cases.filter(c => c.custom)) $('custom-case').append(new Option(c.name + '.in · ' + c.verdict, c.id));
+  $('custom-case').disabled = !cases.some(c => c.custom);
+  $('custom-case').value = cases.find(c => c.id === $('case').value && c.custom)?.id || '';
+  if (!cases.some(c => c.id === $('case').value)) selectCase(cases[0]?.id || '');
+  updateCaseStatus();
+}
+$('task').onchange = showCases;
+$('custom-case').onchange = () => { if ($('custom-case').value) selectCase($('custom-case').value); };
+let catalogSignature;
+async function refreshCatalog() {
+  const cases = await get('api/cases');
+  const encoded = JSON.stringify(cases);
+  if (encoded === catalogSignature) return;
+  catalogSignature = encoded;
+  const selected = $('case').value, task = $('task').value;
+  catalogCases = cases;
+  $('case').replaceChildren(new Option('', ''));
+  for (const c of cases) $('case').append(new Option(c.name, c.id));
+  $('case').value = selected;
+  $('task').replaceChildren();
+  const taskNames = {bfs_visualization: 'BFS · Учебный пример', task_01: 'Зависимости приложений', task_02: 'Односторонние дороги', task_03: 'Уязвимости сети', task_04: 'Джонсон · Кратчайшие пути'};
+  for (const name of new Set(cases.map(c => c.task))) $('task').append(new Option(taskNames[name] || name, name));
+  if (cases.some(c => c.task === task)) $('task').value = task;
+  showCases();
+  if (!cases.length) throw Error('Не найдены файловые тесты');
+}
+clearSelection('Загружаем тесты…');
+refreshCatalog().catch(showError);
+setInterval(async () => { try { await refreshCatalog(); await load(true); } catch(error) { showError(error); } }, 3000);

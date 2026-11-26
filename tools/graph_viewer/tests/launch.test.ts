@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
@@ -22,11 +22,20 @@ test('launcher help and argument validation work from outside the repository', (
 });
 
 test('one command builds BFS, records tests and serves the viewer', {timeout: 60000}, async t => {
+  // A clean copy proves the launcher needs no cached build or recordings, and
+  // does not run a student's intentionally failing custom cases.
+  const clean = await mkdtemp(join(tmpdir(), 'graph-clean-launch-'));
+  t.after(() => rm(clean, {recursive:true,force:true}));
+  for (const path of ['visualize', 'scripts/run_cases.py', 'lib', 'tools/graph_viewer', 'examples/bfs_visualization']) {
+    await cp(join(REPO,path), join(clean,path), {recursive:true, filter: source =>
+      source !== join(REPO,'tools/graph_viewer/node_modules')
+      && source !== join(REPO,'examples/bfs_visualization/tests/custom')});
+  }
   const socket = createServer(); socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
   const port = (socket.address() as AddressInfo).port;
   await new Promise<void>(done => socket.close(() => done()));
-  const child = spawn(script, ['--port', String(port)], {cwd: tmpdir(), stdio: ['ignore', 'pipe', 'pipe']});
+  const child = spawn(join(clean,'visualize'), ['--port', String(port)], {cwd: tmpdir(), stdio: ['ignore', 'pipe', 'pipe']});
   let output = '', errors = '';
   child.stderr.on('data', chunk => { errors += chunk; });
   t.after(async () => {
@@ -45,7 +54,7 @@ test('one command builds BFS, records tests and serves the viewer', {timeout: 60
   });
   assert.match(output, /12 tests from 1 test suite/);
   // Число примеров меняется при добавлении графов: сверяем запуск с файлами.
-  const cases = (await readdir(join(REPO, 'examples/bfs_visualization/tests')))
+  const cases = (await readdir(join(clean, 'examples/bfs_visualization/tests')))
     .filter(name => name.endsWith('.in'));
   assert.ok(cases.length > 0);
   assert.equal(Number(output.match(/^Cases run: (\d+)$/m)?.[1]), cases.length);

@@ -1,4 +1,5 @@
 /** Read-only Codespaces server. Node 24 runs TypeScript directly; no runtime packages. */
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { open, realpath, readdir, readFile } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, join, dirname, basename } from 'node:path';
@@ -13,7 +14,7 @@ const MAX_FILE = 9 * 1024 * 1024;
 export interface Edge { id: number; from: number; to: number }
 export interface Graph { n: number; first: number; directed: boolean; edges: Edge[] }
 interface Task { folder: string; directed: boolean; first: number; label: string }
-interface Case { id: string; task: string; name: string; label: string }
+interface Case { id: string; task: string; name: string; label: string; custom: boolean }
 export type Event =
   | {type: 'node' | 'edge'; id: number; state: string}
   | {type: 'value'; id: number; name: string; value: number}
@@ -43,24 +44,66 @@ export async function readBounded(path: string, root: string, limit = MAX_FILE):
       offset += bytesRead;
     }
     if (offset > limit) throw Error('Файл слишком большой для просмотра');
-    return new TextDecoder('utf-8', {fatal: true}).decode(buffer.subarray(0, offset));
+    return new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(buffer.subarray(0, offset));
   } finally { await file.close(); }
 }
 export async function catalog(repo = REPO): Promise<Case[]> {
   const result: Case[] = [];
   for (const [task, config] of Object.entries(TASKS)) {
-    for (const folder of [join(config.folder, 'tests'), config.folder]) {
+    for (const folder of [join(config.folder, 'tests'), config.folder, join(config.folder, 'tests/custom')]) {
       let names: string[];
       try { names = await readdir(join(repo, folder)); } catch(error) { if(missing(error)) continue; throw error; }
       for (const name of names.sort()) {
         if (!name.endsWith('.in')) continue;
         const path = join(repo, folder, name);
         if (!contained(await realpath(repo), await realpath(path))) continue;
-        result.push({id: [folder.replaceAll('\\', '/'), name].join('/'), task, name: basename(name, '.in'), label: config.label});
+        result.push({id: [folder.replaceAll('\\', '/'), name].join('/'), task, name: basename(name, '.in'), label: config.label, custom: folder === join(config.folder, 'tests/custom')});
       }
     }
   }
   return result;
+}
+const VERDICTS = {
+  ok: 'OK', fail: 'Wrong Answer', error: 'Runtime Error', timeout: 'Time Limit Exceeded',
+  slow: 'Slow', mem_exceeded: 'Memory Limit Exceeded', no_expected: 'No Expected Output',
+  exec_missing: 'Executable Missing',
+} as const;
+type ResultStatus = keyof typeof VERDICTS;
+interface SavedResult { id: string; inputHash: string; expectedHash: string | null; status: ResultStatus }
+function isSavedResult(value: unknown): value is SavedResult {
+  if (!value || typeof value !== 'object') return false;
+  const r = value as Record<string, unknown>;
+  return typeof r.id === 'string' && typeof r.inputHash === 'string'
+    && /^[a-f0-9]{64}$/.test(r.inputHash)
+    && (r.expectedHash === null || (typeof r.expectedHash === 'string' && /^[a-f0-9]{64}$/.test(r.expectedHash)))
+    && typeof r.status === 'string' && Object.hasOwn(VERDICTS, r.status);
+}
+export async function resultsCatalog(repo = REPO, traces = join(repo, '.graph-traces')) {
+  const cases = await catalog(repo);
+  const reports = new Map<string, Map<string, SavedResult>>();
+  for (const task of new Set(cases.map(c => c.task))) {
+    try {
+      const report: unknown = JSON.parse(await readBounded(join(traces, task, 'results.json'), traces));
+      const entries = Array.isArray(report) ? report.filter(isSavedResult) : [];
+      reports.set(task, new Map(entries.map(entry => [entry.id, entry])));
+    } catch { reports.set(task, new Map()); }
+  }
+  return Promise.all(cases.map(async c => {
+    const result = reports.get(c.task)?.get(c.id);
+    let fresh = false;
+    if (result) {
+      try {
+        const hash = (text: string) => createHash('sha256').update(text).digest('hex');
+        const inputHash = hash(await readBounded(join(repo, c.id), repo));
+        let expectedHash = null;
+        try { expectedHash = hash(await readBounded(join(repo, c.id.replace(/\.in$/, '.out')), repo)); }
+        catch (error) { if (!missing(error)) throw error; }
+        fresh = inputHash === result.inputHash && expectedHash === result.expectedHash;
+      } catch { fresh = false; }
+    }
+    return {...c, status: fresh && result ? result.status : 'not_run',
+      verdict: fresh && result ? VERDICTS[result.status] : (result ? 'Нужно перезапустить' : 'Не запускался')};
+  }));
 }
 export function parseGraph(text: string, directed: boolean, first: number): Graph {
   const tokens = text.trim().split(/\s+/);
@@ -137,11 +180,11 @@ export async function caseData(id: string, repo = REPO, traces = join(repo, '.gr
   const input = await readBounded(path, repo);
   const graph = parseGraph(input, config.directed, config.first);
   async function optional(file: string) {
-    try { return await readBounded(file, repo); } catch(error) { if(missing(error)) return ''; throw error; }
+    try { return await readBounded(file, repo); } catch(error) { if(missing(error)) return null; throw error; }
   }
   const [expected, actual] = await Promise.all([optional(path.replace(/\.in$/, '.out')), optional(path.replace(/\.in$/, '.out.actual'))]);
   let trace: {events: Event[]; warnings: string[]} = {events: [], warnings: []};
-  try { trace = parseTrace(await readBounded(join(traces, test.task, test.name+'.jsonl'), traces), graph); }
+  try { trace = parseTrace(await readBounded(join(traces, test.task, test.custom ? 'custom' : (dirname(test.id) === config.folder ? 'root' : ''), test.name+'.jsonl'), traces), graph); }
   catch(error) { if (!missing(error)) trace.warnings.push('Не удалось открыть запись: '+(error as Error).message); }
   return {...test, input, graph, expected, actual, ...trace};
 }
@@ -159,13 +202,13 @@ export function viewerServer(repo = REPO, traces = join(repo, '.graph-traces'), 
     try {
       const url = new URL(request.url || '/', 'http://localhost');
       if (url.pathname === '/api/cases') {
-        const cases = await catalog(repo);
+        const cases = await resultsCatalog(repo, traces);
         if (preferredTask) cases.sort((a, b) => Number(b.task === preferredTask) - Number(a.task === preferredTask));
         send(response, JSON.stringify(cases), 'application/json');
       }
       else if (url.pathname === '/api/case') send(response, JSON.stringify(await caseData(url.searchParams.get('id') || '', repo, traces)), 'application/json');
       else {
-        const files: Record<string, [string, string]> = {'/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/layout.js': ['layout.js','text/javascript'], '/model.js': ['model.js','text/javascript'], '/style.css': ['style.css','text/css'], '/favicon.svg': ['favicon.svg','image/svg+xml']};
+        const files: Record<string, [string, string]> = {'/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/layout.js': ['layout.js','text/javascript'], '/model.js': ['model.js','text/javascript'], '/style.css': ['style.css','text/css'], '/favicon.svg': ['favicon.svg','image/svg+xml'], '/select-chevron.svg': ['select-chevron.svg','image/svg+xml'], '/brand.svg': ['brand.svg','image/svg+xml']};
         const entry = files[url.pathname];
         if (!entry) { send(response, 'Not found', 'text/plain', 404); return; }
         send(response, await readFile(join(STATIC, entry[0])), entry[1]);

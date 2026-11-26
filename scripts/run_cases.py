@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import re
+import shlex
 from enum import Enum
+from itertools import zip_longest
 import subprocess
 import sys
 import time
@@ -26,6 +30,18 @@ class CaseStatus(Enum):
     SLOW = "slow"
     ERROR = "error"
     MEM_EXCEEDED = "mem_exceeded"
+
+
+CASE_VERDICTS = {
+    CaseStatus.OK: "OK",
+    CaseStatus.FAIL: "Wrong Answer",
+    CaseStatus.TIMEOUT: "Time Limit Exceeded",
+    CaseStatus.ERROR: "Runtime Error",
+    CaseStatus.SLOW: "Slow",
+    CaseStatus.MEM_EXCEEDED: "Memory Limit Exceeded",
+    CaseStatus.NO_EXPECTED: "No Expected Output",
+    CaseStatus.EXEC_MISSING: "Executable Missing",
+}
 
 
 @dataclass
@@ -100,6 +116,7 @@ def list_cases_for_task_in_task(repo_root: Path, task: str) -> List[Tuple[Path, 
     tests_subdir = task_dir / "tests"
     if tests_subdir.exists():
         candidates.extend(sorted(tests_subdir.glob("*.in")))
+        candidates.extend(sorted((tests_subdir / "custom").glob("*.in")))
     # Also allow inputs directly under the task directory
     candidates.extend(sorted(task_dir.glob("*.in")))
     # Deduplicate while preserving order
@@ -137,7 +154,7 @@ def normalize(s: str, mode: str) -> str:
     return s.rstrip()
 
 
-def run_executable(exe: Path, stdin_data: str, timeout_sec: float, env: Optional[Dict[str, str]] = None) -> Tuple[int, str, str, float]:
+def run_executable(exe: Path, stdin_data: str, timeout_sec: float, env: Optional[Dict[str, str]] = None) -> Tuple[Optional[int], str, str, float]:
     start = time.perf_counter()
     try:
         completed = subprocess.run(
@@ -150,9 +167,9 @@ def run_executable(exe: Path, stdin_data: str, timeout_sec: float, env: Optional
         )
         duration = time.perf_counter() - start
         return completed.returncode, completed.stdout, completed.stderr, duration
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         duration = time.perf_counter() - start
-        return 124, e.stdout or "", e.stderr or "", duration
+        return None, "", "", duration
 
 
 def find_time_tool() -> Optional[str]:
@@ -165,7 +182,7 @@ def find_time_tool() -> Optional[str]:
 
 def run_executable_with_memory(
     exe: Path, stdin_data: str, timeout_sec: float, time_tool: str, env: Optional[Dict[str, str]] = None
-) -> Tuple[int, str, str, float, Optional[int]]:
+) -> Tuple[Optional[int], str, str, float, Optional[int]]:
     # Use GNU time to measure peak RSS in KB via %M
     with tempfile.NamedTemporaryFile(prefix="runner_mem_", delete=False) as tmp:
         mem_file = tmp.name
@@ -184,11 +201,11 @@ def run_executable_with_memory(
             rc = completed.returncode
             stdout = completed.stdout
             stderr = completed.stderr
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             duration = time.perf_counter() - start
-            rc = 124
-            stdout = e.stdout or ""
-            stderr = e.stderr or ""
+            rc = None
+            stdout = ""
+            stderr = ""
 
         # Read memory usage if file exists
         peak_kb: Optional[int] = None
@@ -213,6 +230,29 @@ def run_executable_with_memory(
 
 def compare_outputs(actual: str, expected: str) -> bool:
     return actual == expected
+
+
+def output_preview(value: Optional[str]) -> str:
+    if value is None:
+        return "<end of output>"
+    return repr(value[:160]) + (" ..." if len(value) > 160 else "")
+
+
+def print_output_difference(actual: str, expected: str) -> None:
+    lines = zip_longest(expected.split("\n") if expected else [],
+                        actual.split("\n") if actual else [])
+    for number, (want, got) in enumerate(lines, 1):
+        if want != got:
+            print(f"  First difference at line {number}")
+            print(f"  Expected: {output_preview(want)}")
+            print(f"  Actual:   {output_preview(got)}")
+            break
+
+
+def print_replay(exe: Path, input_file: Path) -> None:
+    command = shlex.quote(str(exe.absolute()))
+    source = shlex.quote(str(input_file.absolute()))
+    print(f"  Run manually: {command} < {source}")
 
 
 def format_ms(seconds: float) -> int:
@@ -390,6 +430,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     results: List[CaseResult] = []
     total_cases = 0
+    result_inputs: List[dict] = []
 
     # Decide whether to measure memory
     time_tool = find_time_tool()
@@ -409,25 +450,35 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         print(f"\n=== {task} ({len(cases)} case(s)) ===")
         for input_file, expected_file in cases:
             total_cases += 1
+            # Hash the exact snapshots used by this run, not files reread after it.
+            input_bytes = input_file.read_bytes()
+            expected_bytes = expected_file.read_bytes() if expected_file.exists() else None
+            snapshot = {
+                "id": os.path.relpath(input_file, repo_root).replace(os.sep, "/"),
+                "inputHash": hashlib.sha256(input_bytes).hexdigest(),
+                "expectedHash": hashlib.sha256(expected_bytes).hexdigest() if expected_bytes is not None else None,
+            }
+            result_inputs.append(snapshot)
             case_name = input_file.stem
-            if exe is None:
-                results.append(
-                    CaseResult(task, case_name, CaseStatus.EXEC_MISSING, 0, "Executable is missing")
-                )
-                print(f"{case_name}: EXEC MISSING")
-                continue
-
-            if args.save_actual:
+            if args.save_actual or args.trace_dir:
                 expected_file.with_suffix(".out.actual").unlink(missing_ok=True)
             run_env = os.environ.copy()
             # Ordinary checks must not inherit an unrelated recording destination.
             run_env.pop("GRAPH_TRACE", None)
             if args.trace_dir:
-                trace_path = args.trace_dir.resolve() / task / (case_name + ".jsonl")
+                # Separate equally named built-in, custom and task-root cases.
+                group = "custom" if input_file.parent.name == "custom" else (
+                    "root" if args.tests_layout == "in-task" and input_file.parent.name == task else ""
+                )
+                trace_path = args.trace_dir.resolve() / task / group / (case_name + ".jsonl")
                 trace_path.parent.mkdir(parents=True, exist_ok=True)
                 trace_path.unlink(missing_ok=True)
                 run_env["GRAPH_TRACE"] = str(trace_path)
-            stdin_data = read_text(input_file)
+            if exe is None:
+                results.append(CaseResult(task, case_name, CaseStatus.EXEC_MISSING, 0, "Executable is missing"))
+                print(f"{case_name}: EXEC MISSING")
+                continue
+            stdin_data = input_bytes.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
             if measure_memory:
                 rc, stdout, stderr, duration, peak_kb = run_executable_with_memory(
                     exe, stdin_data, args.timeout, time_tool, run_env  # type: ignore[arg-type]
@@ -437,24 +488,37 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
                 peak_kb = None
             duration_ms = format_ms(duration)
 
-            if rc == 124:  # timeout code used above
+            if rc is None:
                 results.append(CaseResult(task, case_name, CaseStatus.TIMEOUT, duration_ms, "Timed out", peak_kb))
                 suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
                 print(f"{case_name}: TIMEOUT ({duration_ms} ms{suffix})")
+                print(f"  Time limit: {args.timeout:g} s")
+                print_replay(exe, input_file)
+                continue
+
+            if rc != 0:
+                reason = f"signal {-rc}" if rc < 0 else f"exit code {rc}"
+                results.append(CaseResult(task, case_name, CaseStatus.ERROR, duration_ms, reason, peak_kb))
+                print(f"{case_name}: ERROR ({reason}, {duration_ms} ms)")
+                if stderr:
+                    print(f"  Stderr: {output_preview(stderr)}")
+                print_replay(exe, input_file)
                 continue
 
             actual_norm = normalize(stdout, args.normalize)
 
-            if args.update_expected and expected_file.exists():
+            if args.update_expected and expected_bytes is not None:
                 write_text(expected_file, actual_norm + "\n")
+                snapshot["expectedHash"] = hashlib.sha256(expected_file.read_bytes()).hexdigest()
                 results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "updated expected", peak_kb))
                 suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
                 print(f"{case_name}: UPDATED ({duration_ms} ms{suffix})")
                 continue
 
-            if not expected_file.exists():
+            if expected_bytes is None:
                 if args.write_missing:
                     write_text(expected_file, actual_norm + "\n")
+                    snapshot["expectedHash"] = hashlib.sha256(expected_file.read_bytes()).hexdigest()
                     results.append(CaseResult(task, case_name, CaseStatus.OK, duration_ms, "wrote expected", peak_kb))
                     suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
                     print(f"{case_name}: WROTE EXPECTED ({duration_ms} ms{suffix})")
@@ -468,7 +532,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
                     print(f"{case_name}: NO EXPECTED ({duration_ms} ms{suffix})")
                 continue
 
-            expected_norm = normalize(read_text(expected_file), args.normalize)
+            expected_norm = normalize(expected_bytes.decode("utf-8"), args.normalize)
             if compare_outputs(actual_norm, expected_norm):
                 # Check soft time limit if provided
                 # Time soft limit
@@ -508,11 +572,34 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             else:
                 if args.save_actual:
                     write_text(expected_file.with_suffix(".out.actual"), actual_norm + "\n")
-                # Provide a short inline diff preview
                 msg = "output differs"
                 results.append(CaseResult(task, case_name, CaseStatus.FAIL, duration_ms, msg, peak_kb))
                 suffix = f", mem {peak_kb} KB" if peak_kb is not None else ""
                 print(f"{case_name}: FAIL ({duration_ms} ms{suffix})")
+                print_output_difference(actual_norm, expected_norm)
+                print_replay(exe, input_file)
+
+    if args.trace_dir:
+        reports = {}
+        for result, snapshot in zip(results, result_inputs):
+            reports.setdefault(result.task, []).append({
+                **snapshot,
+                "status": result.status.value,
+                "verdict": CASE_VERDICTS[result.status],
+                "durationMs": result.duration_ms,
+            })
+        for task, entries in reports.items():
+            destination = args.trace_dir / task / "results.json"
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            # Independent temporary names also allow two tasks/runs to finish concurrently.
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=destination.parent,
+                                             prefix="results-", suffix=".tmp", delete=False) as temporary:
+                json.dump(entries, temporary)
+            temporary_path = Path(temporary.name)
+            try:
+                temporary_path.replace(destination)
+            finally:
+                temporary_path.unlink(missing_ok=True)
 
     # Summary
     if not results:
@@ -521,6 +608,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     passed = sum(1 for r in results if r.status == CaseStatus.OK)
     failed = sum(1 for r in results if r.status == CaseStatus.FAIL)
+    errors = sum(1 for r in results if r.status == CaseStatus.ERROR)
     timeouts = sum(1 for r in results if r.status == CaseStatus.TIMEOUT)
     missing_expected = sum(1 for r in results if r.status == CaseStatus.NO_EXPECTED)
     slow = sum(1 for r in results if r.status == CaseStatus.SLOW)
@@ -529,15 +617,25 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     print(
         f"\n=== Summary ===\n"
-        f"Cases run: {passed + failed + timeouts + missing_expected + missing_exec + slow + mem_exceeded}\n"
-        f"OK: {passed}, FAIL: {failed}, TIMEOUT: {timeouts}, SLOW: {slow}, MEM_EXCEEDED: {mem_exceeded}, NO_EXPECTED: {missing_expected}, EXEC_MISSING: {missing_exec}"
+        f"Cases run: {passed + failed + errors + timeouts + missing_expected + missing_exec + slow + mem_exceeded}\n"
+        f"OK: {passed}, FAIL: {failed}, ERROR: {errors}, TIMEOUT: {timeouts}, SLOW: {slow}, MEM_EXCEEDED: {mem_exceeded}, NO_EXPECTED: {missing_expected}, EXEC_MISSING: {missing_exec}"
     )
+
+    print(f"Passed: {passed}/{len(results)}")
+    results_by_task: Dict[str, List[CaseResult]] = {}
+    for result in results:
+        results_by_task.setdefault(result.task, []).append(result)
+    for task, task_results in results_by_task.items():
+        task_passed = sum(result.status == CaseStatus.OK for result in task_results)
+        print(f"\n{task}: {task_passed}/{len(task_results)} passed")
+        for number, result in enumerate(task_results, 1):
+            print(f"  Test {number} ({result.case_name}): {CASE_VERDICTS[result.status]}")
 
     if args.report_slowest and results:
         # Consider only cases that actually ran (exclude exec_missing/no_expected) and sort by duration
         measured = [
             r for r in results
-            if r.status in {CaseStatus.OK, CaseStatus.FAIL, CaseStatus.TIMEOUT, CaseStatus.SLOW}
+            if r.status in {CaseStatus.OK, CaseStatus.FAIL, CaseStatus.ERROR, CaseStatus.TIMEOUT, CaseStatus.SLOW}
         ]
         measured.sort(key=lambda r: r.duration_ms, reverse=True)
         top_n = measured[: max(0, args.report_slowest)]
@@ -559,6 +657,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     if (
         failed
+        or errors
         or timeouts
         or missing_exec
         or missing_expected
