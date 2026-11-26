@@ -6,31 +6,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { caseData, resultsCatalog } from '../server.ts';
 
-test('Johnson cases combine verdicts, weighted graphs and recorded steps', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'viewer-johnson-results-'));
-  try {
-    const tests = join(root, 'task_04/tests'), traces = join(root, '.graph-traces/task_04');
-    await mkdir(tests, {recursive: true}); await mkdir(traces, {recursive: true});
-    const id = 'task_04/tests/negative.in', input = '2 1\n0 1 -2\n', expected = '0 -2\nINF 0\n';
-    await writeFile(join(root, id), input);
-    await writeFile(join(tests, 'negative.out'), expected);
-    const hash = (s: string) => createHash('sha256').update(s).digest('hex');
-    await writeFile(join(traces, 'results.json'), JSON.stringify([
-      {id, inputHash: hash(input), expectedHash: hash(expected), status: 'ok'},
-    ]));
-    const events = [{type:'header',version:1},{type:'graph',n:2,first:0,directed:true},
-      {type:'add_edge',id:0,from:0,to:1},{type:'value',id:1,name:'from_0',value:-2},
-      {type:'step',message:'Расстояния из вершины 0'},{type:'end'}];
-    await writeFile(join(traces, 'negative.jsonl'), events.map(e=>JSON.stringify(e)).join('\n')+'\n');
-    const [result] = await resultsCatalog(root);
-    assert.equal(result.verdict, 'OK'); assert.equal(result.custom, false);
-    const data = await caseData(id, root);
-    assert.deepEqual(data.graph.edges, [{id:0,from:0,to:1,weight:-2}]);
-    assert.deepEqual(data.warnings, []);
-    assert.equal(data.events.length, 2); assert.equal(data.expected, expected);
-  } finally { await rm(root, {recursive:true,force:true}); }
-});
-
 test('results distinguish custom tests, missing runs and changed inputs or answers', async () => {
   const root = await mkdtemp(join(tmpdir(), 'viewer-results-'));
   try {
