@@ -67,3 +67,6 @@ node_modules/
 
 # Hand-written project entry point
 !/Makefile
+
+# Runner diagnostics are generated, not test expectations.
+*.out.actual

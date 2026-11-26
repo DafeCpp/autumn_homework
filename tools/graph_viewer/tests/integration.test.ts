@@ -20,8 +20,16 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
     run('c++',['-std=c++17','-Ilib/src',join(source,'src/main.cpp'),join(source,'src/bfs.cpp'),'lib/src/graph_trace.cpp','-o',executable]);
     run('c++',['-std=c++17','-Ilib/src',join(source,'src/plain.cpp'),join(source,'src/bfs.cpp'),'lib/src/graph_trace.cpp','-o',plain]);
     const tests=join(source,'tests');
+    // Run only the committed teaching fixtures, not local custom cases.
+    const isolatedTests=join(root,'examples/bfs_visualization/tests');
+    await mkdir(isolatedTests,{recursive:true}); await mkdir(join(root,'scripts'));
+    const runner=join(root,'scripts/run_cases.py');
+    await writeFile(runner,await readFile(join(REPO,'scripts/run_cases.py')));
+    for (const file of (await readdir(tests)).filter(f=>/\.(in|out)$/.test(f))) {
+      await writeFile(join(isolatedTests,file),await readFile(join(tests,file)));
+    }
     const traces=join(root,'traces');
-    const report=run('python3',['scripts/run_cases.py','--example','bfs_visualization','--build-dir',build,'--trace-dir',traces]);
+    const report=run('python3',[runner,'--example','bfs_visualization','--build-dir',build,'--trace-dir',traces]);
     assert.match(report,/chain: OK/);assert.match(report,/parallel_loop: OK/);
     for (const file of (await readdir(tests)).filter(f=>f.endsWith('.in'))) {
       const input=await readFile(join(tests,file),'utf8');
@@ -47,7 +55,7 @@ test('BFS CLI answers agree with fixtures in both recording modes; runner record
     }
     // Ordinary runs explicitly remove an inherited GRAPH_TRACE destination.
     const marker=join(root,'do-not-touch');await writeFile(marker,'sentinel');
-    run('python3',['scripts/run_cases.py','--example','bfs_visualization','--build-dir',build],undefined,{...process.env,GRAPH_TRACE:marker});
+    run('python3',[runner,'--example','bfs_visualization','--build-dir',build],undefined,{...process.env,GRAPH_TRACE:marker});
     assert.equal(await readFile(marker,'utf8'),'sentinel');
     // C++ JSON escaping and bounded logging, including infinite-loop-like output.
     const probe=join(root,'probe.cpp'),probeExe=join(root,'probe');

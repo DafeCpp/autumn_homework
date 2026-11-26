@@ -57,7 +57,7 @@ test('read-only HTTP API confines files and serves browser assets', async () => 
     assert.equal((await fetch(base+'/api/case?id=../../secret')).status,400);
     assert.equal((await fetch(base+'/secret')).status,404);
     assert.equal((await fetch(base+'/api/cases',{method:'POST'})).status,405);
-    for (const asset of ['/','/app.js','/model.js','/style.css']) assert.equal((await fetch(base+asset)).status,200);
+    for (const asset of ['/','/app.js','/model.js','/style.css','/brand.svg','/favicon.svg','/select-chevron.svg']) assert.equal((await fetch(base+asset)).status,200);
     assert.match(response.headers.get('content-security-policy')||'',/default-src 'self'/);
   } finally { if(server.listening) await new Promise<void>(done=>server.close(()=>done())); await rm(root,{recursive:true,force:true}); }
 });

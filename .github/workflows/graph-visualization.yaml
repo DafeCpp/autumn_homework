@@ -4,9 +4,11 @@ on:
     paths:
       - 'tools/graph_viewer/**'
       - 'visualize'
+      - 'Makefile'
       - 'lib/src/graph_trace.*'
       - 'examples/bfs_visualization/**'
       - 'scripts/run_cases.py'
+      - 'scripts/tests/**'
       - '.devcontainer/**'
       - 'CMakeLists.txt'
       - '.github/workflows/graph-visualization.yaml'
@@ -25,6 +27,7 @@ jobs:
           cache-dependency-path: tools/graph_viewer/package-lock.json
       - run: sudo apt-get update && sudo apt-get install -y libgtest-dev
       - run: npm --prefix tools/graph_viewer ci
+      - run: python3 -m unittest discover -s scripts/tests -v
       - run: npm --prefix tools/graph_viewer run typecheck
       - run: npm --prefix tools/graph_viewer test
       - run: ./visualize --prepare-only
