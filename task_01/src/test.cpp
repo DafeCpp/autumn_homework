@@ -44,9 +44,7 @@ TEST(Test, example1) {
   ASSERT_EQ(task1(3, 2, arr), right);  // порядок единственный
 }
 
-TEST(Test, example2) {
-  ExpectCycle(4, {0, 1, 1, 2, 2, 0, 3, 1});
-}
+TEST(Test, example2) { ExpectCycle(4, {0, 1, 1, 2, 2, 0, 3, 1}); }
 
 // ---------- Минимальные случаи ----------
 
@@ -56,13 +54,9 @@ TEST(Test, oneVertexNoEdges) {
   ASSERT_EQ(task1(1, 0, arr), right);
 }
 
-TEST(Test, oneVertexSelfLoop) {
-  ExpectCycle(1, {0, 0});
-}
+TEST(Test, oneVertexSelfLoop) { ExpectCycle(1, {0, 0}); }
 
-TEST(Test, twoVerticesNoEdges) {
-  ExpectOrder(2, {});
-}
+TEST(Test, twoVerticesNoEdges) { ExpectOrder(2, {}); }
 
 TEST(Test, twoVerticesOneEdge) {
   vector<int> arr = {0, 1};
@@ -76,15 +70,11 @@ TEST(Test, twoVerticesReverseEdge) {
   ASSERT_EQ(task1(2, 1, arr), right);
 }
 
-TEST(Test, twoVerticesCycle) {
-  ExpectCycle(2, {0, 1, 1, 0});
-}
+TEST(Test, twoVerticesCycle) { ExpectCycle(2, {0, 1, 1, 0}); }
 
 // ---------- Циклы ----------
 
-TEST(Test, selfLoopAmongOthers) {
-  ExpectCycle(5, {0, 1, 2, 2, 3, 4});
-}
+TEST(Test, selfLoopAmongOthers) { ExpectCycle(5, {0, 1, 2, 2, 3, 4}); }
 
 TEST(Test, cycleInSeparateComponent) {
   // 0 -> 1 - нормальная цепочка, 2 -> 3 -> 4 -> 2 - цикл
@@ -102,9 +92,7 @@ TEST(Test, cycleAtTheEndOfLongPath) {
 
 // ---------- Корректные графы ----------
 
-TEST(Test, noEdges) {
-  ExpectOrder(10, {});
-}
+TEST(Test, noEdges) { ExpectOrder(10, {}); }
 
 TEST(Test, chain) {
   vector<int> arr = {0, 1, 1, 2, 2, 3, 3, 4};
@@ -131,17 +119,11 @@ TEST(Test, star_manyDependOnOne) {
   ExpectOrder(6, {1, 0, 2, 0, 3, 0, 4, 0, 5, 0});
 }
 
-TEST(Test, twoIndependentChains) {
-  ExpectOrder(6, {0, 1, 1, 2, 3, 4, 4, 5});
-}
+TEST(Test, twoIndependentChains) { ExpectOrder(6, {0, 1, 1, 2, 3, 4, 4, 5}); }
 
-TEST(Test, chainsWithIsolatedVertices) {
-  ExpectOrder(8, {0, 1, 1, 2, 5, 6});
-}
+TEST(Test, chainsWithIsolatedVertices) { ExpectOrder(8, {0, 1, 1, 2, 5, 6}); }
 
-TEST(Test, duplicateEdges) {
-  ExpectOrder(3, {0, 1, 0, 1, 0, 1, 1, 2, 1, 2});
-}
+TEST(Test, duplicateEdges) { ExpectOrder(3, {0, 1, 0, 1, 0, 1, 1, 2, 1, 2}); }
 
 TEST(Test, transitiveEdgeRedundant) {
   // 0 -> 1 -> 2 и лишнее ребро 0 -> 2

@@ -1,6 +1,6 @@
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "task4.h"
 
@@ -12,7 +12,7 @@ int main() {
     int u, v, w;
     std::cin >> u >> v >> w;
 
-    edges.push_back({u,v,w});
+    edges.push_back({u, v, w});
   }
   auto result = task4(n, m, edges);
   for (std::string i : result) {
