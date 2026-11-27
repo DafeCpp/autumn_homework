@@ -1,6 +1,6 @@
-
 cmake_minimum_required(VERSION 3.10)
 
+# Динамически получаем имя текущей папки (например, task_01 или task_02)
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 string(REPLACE " " "_" PROJECT_NAME ${PROJECT_NAME})
 project(${PROJECT_NAME} C CXX)
@@ -14,6 +14,7 @@ file(GLOB_RECURSE source_list CONFIGURE_DEPENDS
 file(GLOB test_source_list CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*test.cpp")
 
+# 2. Исключаем файлы тестов из основной программы
 list(REMOVE_ITEM source_list ${test_source_list})
 
 include_directories(${PROJECT_NAME} PUBLIC src)
@@ -24,11 +25,10 @@ set(lib_sources ${source_list})
 list(REMOVE_ITEM lib_sources "${main_cpp}")
 
 add_executable(${PROJECT_NAME} ${source_list})
+target_include_directories(${PROJECT_NAME} PUBLIC src)
 
 enable_testing()
 find_package(GTest REQUIRED)
-
-include_directories(${GTEST_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Utils)
 
