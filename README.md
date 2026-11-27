@@ -125,3 +125,26 @@ python3 scripts/run_cases.py --tasks task_01 task_02
 Откройте **Ports → 8765 → Open in Browser**. Нужен Node.js 24; он добавлен в
 конфигурацию devcontainer. Для существующего Codespace выполните Rebuild Container.
 Для запуска просмотрщика установка npm-пакетов не требуется.
+
+## Команды Make
+
+`make` собирает весь проект. `make help` показывает команды и параметры.
+Нужны Make, CMake, компилятор C++23 и GTest; для Python-проверок — Python 3,
+для форматирования — clang-format. Node.js 24 нужен только для `test-node`.
+
+- `make test` — все gtest и Python-проверки.
+- `make test-gtest` — gtest через CTest, включая шаблоны и пример BFS.
+- `make test-python` — файловые проверки и Python unittest.
+- `make test-cases` — `.in/.out` задач и BFS; `make test-unittest` — тесты CI-скриптов.
+- `make test-node` — тесты просмотрщика и публикации clang-tidy.
+- `make install-hooks` — установка существующего pre-commit хука.
+- `make format` — все отслеживаемые и новые неигнорируемые C++-файлы.
+- `make format-changed` — локальные изменения относительно HEAD и новые файлы, без изменения индекса.
+- `make format-check` — проверка форматирования без записи.
+- `make configure` — конфигурация; `make clean` — очистка сборки средствами CMake.
+
+Примеры: `make build BUILD_DIR=build-local JOBS=8`,
+`make test-gtest CTEST_ARGS="-R BFS"`, `make configure CMAKE_ARGS="-DCMAKE_PREFIX_PATH=/path/to/gtest"`.
+По умолчанию BUILD_DIR=build, BUILD_TYPE=Release, JOBS=4, PYTHON=python3,
+CLANG_FORMAT=clang-format. Зависимости автоматически не устанавливаются.
+`test-unittest` пропускает проверку реального clang-tidy, если он недоступен.
